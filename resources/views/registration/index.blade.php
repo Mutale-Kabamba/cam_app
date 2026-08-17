@@ -2,146 +2,153 @@
 
 @section('title', 'Parishes & Contingent Registration')
 
-@section('content')
-<div style="margin-bottom: 2rem;">
-    <h2 style="font-family: var(--font-display); font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem;">
-        ⛪ Checked-In Parishes & Contingents
-    </h2>
-    <p style="color: var(--text-muted);">Official roster of Diocesan parish contingents that have arrived and completed camp check-in.</p>
-</div>
+@section('hero')
+<div class="page-hero-eyebrow">⛪ Official Roster</div>
+<h2>Checked-In Parishes &amp; Contingents</h2>
+<p>Official roster of Diocesan parish contingents that have arrived and completed camp check-in.</p>
+@endsection
 
+@section('content')
+
+{{-- Stats --}}
 <div class="grid-stats">
-    <div class="stat-card">
-        <div class="stat-icon" style="color: #3b82f6; background: rgba(59, 130, 246, 0.15);">⛪</div>
+    <div class="stat-card" style="--stat-color: #3b82f6;">
+        <div class="stat-icon" style="color: #3b82f6; background: rgba(59,130,246,0.12);">⛪</div>
         <div class="stat-content">
             <h4>Total Parishes</h4>
             <div class="stat-val">{{ $stats['total_parishes'] }}</div>
+            <div class="stat-sub">registered diocesan parishes</div>
         </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.15);">🎟️</div>
+    <div class="stat-card" style="--stat-color: #10b981;">
+        <div class="stat-icon" style="color: #10b981; background: rgba(16,185,129,0.12);">🎟️</div>
         <div class="stat-content">
-            <h4>Checked-In Parishes</h4>
+            <h4>Checked-In</h4>
             <div class="stat-val">{{ $stats['checked_in'] }}</div>
+            <div class="stat-sub">parishes at camp</div>
         </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.15);">👥</div>
+    <div class="stat-card" style="--stat-color: #f59e0b;">
+        <div class="stat-icon" style="color: #f59e0b; background: rgba(245,158,11,0.12);">👥</div>
         <div class="stat-content">
-            <h4>Total Contingent Size</h4>
+            <h4>Total Contingent</h4>
             <div class="stat-val">{{ $stats['total_contingent'] }}</div>
-            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.2rem;">
+            <div class="stat-sub">
                 ♂ {{ $stats['total_male'] ?? 0 }} Male &bull; ♀ {{ $stats['total_female'] ?? 0 }} Female
             </div>
         </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="color: #8b5cf6; background: rgba(139, 92, 246, 0.15);">🏕️</div>
+    <div class="stat-card" style="--stat-color: #8b5cf6;">
+        <div class="stat-icon" style="color: #8b5cf6; background: rgba(139,92,246,0.12);">🏕️</div>
         <div class="stat-content">
-            <h4>Campers In Camp</h4>
+            <h4>In Camp</h4>
             <div class="stat-val">{{ $stats['checked_in_contingent'] }}</div>
-            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.2rem;">
+            <div class="stat-sub">
                 ♂ {{ $stats['checked_in_male'] ?? 0 }} Male &bull; ♀ {{ $stats['checked_in_female'] ?? 0 }} Female
             </div>
         </div>
     </div>
 </div>
 
-<div class="glass-card" style="margin-bottom: 1.5rem;">
-    <form method="GET" action="{{ route('registration.index') }}" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-        <div style="flex: 1; min-width: 220px;">
-            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem;">Search Parish</label>
-            <input type="text" name="search" value="{{ $search }}" placeholder="Search by Parish Name, Code or Patron..." style="width: 100%; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-card); color: #fff; padding: 0.55rem 1rem; border-radius: 8px;">
+{{-- Filters --}}
+<div class="glass-card" style="margin-bottom: 1.5rem; padding: 1.1rem 1.35rem;">
+    <form method="GET" action="{{ route('registration.index') }}" class="filter-bar">
+        <div class="filter-group" style="flex: 1; min-width: 220px;">
+            <label>Search Parish</label>
+            <input type="text" name="search" value="{{ $search }}" placeholder="Search by name, code or patron…" style="width: 100%;">
         </div>
-
-        <div>
-            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem;">Deanery</label>
-            <select name="deanery" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-card); color: #fff; padding: 0.55rem 1rem; border-radius: 8px;" onchange="this.form.submit()">
+        <div class="filter-group">
+            <label>Deanery</label>
+            <select name="deanery" onchange="this.form.submit()">
                 <option value="">All Deaneries</option>
                 @foreach($deaneries as $d)
                     <option value="{{ $d }}" {{ $deanery == $d ? 'selected' : '' }}>{{ $d }}</option>
                 @endforeach
             </select>
         </div>
-
-        <div>
-            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem;">Check-In Status</label>
-            <select name="status" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-card); color: #fff; padding: 0.55rem 1rem; border-radius: 8px;" onchange="this.form.submit()">
+        <div class="filter-group">
+            <label>Status</label>
+            <select name="status" onchange="this.form.submit()">
                 <option value="">All Statuses</option>
                 <option value="checked_in" {{ ($status ?? '') == 'checked_in' ? 'selected' : '' }}>✓ Checked In</option>
-                <option value="pending" {{ ($status ?? '') == 'pending' ? 'selected' : '' }}>⏳ Pending Arrival</option>
+                <option value="pending" {{ ($status ?? '') == 'pending' ? 'selected' : '' }}>⏳ Pending</option>
             </select>
         </div>
-
-        <div style="margin-top: auto; display: flex; gap: 0.5rem;">
-            <button type="submit" class="btn btn-primary" style="padding: 0.55rem 1.25rem;">Filter</button>
+        <div style="margin-top: auto; display: flex; gap: 0.5rem; align-items: center;">
+            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
             @if($search || $deanery || $status)
-                <a href="{{ route('registration.index') }}" class="btn btn-secondary" style="padding: 0.55rem 1rem;">Reset</a>
+                <a href="{{ route('registration.index') }}" class="btn btn-secondary btn-sm">✕ Reset</a>
             @endif
         </div>
     </form>
 </div>
 
-<div class="glass-card">
+{{-- Table --}}
+<div class="glass-card" style="padding: 0; overflow: hidden;">
     <div class="table-responsive">
         <table>
             <thead>
                 <tr>
                     <th>Code</th>
-                    <th>Parish Name</th>
+                    <th>Parish</th>
                     <th>Deanery</th>
                     <th>Patron / Matron</th>
-                    <th>Contact Phone</th>
-                    <th>Contingent</th>
-                    <th>Check-In Status</th>
+                    <th>Contact</th>
+                    <th style="text-align: center;">Contingent</th>
+                    <th style="text-align: center;">Check-In</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($parishes as $p)
                     <tr>
                         <td>
-                            <strong style="color: #f59e0b; font-family: var(--font-display);">{{ $p->code }}</strong>
+                            <span style="font-family: var(--font-display); font-weight: 800; font-size: 0.95rem; color: #f59e0b;">
+                                {{ $p->code }}
+                            </span>
                         </td>
                         <td>
-                            <div style="font-weight: 700; font-size: 1rem; color: #fff;">{{ $p->name }}</div>
+                            <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">{{ $p->name }}</div>
                         </td>
                         <td>
-                            <span style="color: #cbd5e1;">{{ $p->deanery ?? 'Livingstone' }}</span>
+                            <span style="color: var(--text-sub); font-size: 0.85rem;">{{ $p->deanery ?? 'Livingstone' }}</span>
                         </td>
                         <td>
-                            <div>{{ $p->patron_matron_name ?? 'Not Specified' }}</div>
+                            <span style="color: var(--text-sub); font-size: 0.85rem;">{{ $p->patron_matron_name ?? '—' }}</span>
                         </td>
                         <td>
-                            <span style="color: #38bdf8;">{{ $p->patron_contact ?? 'N/A' }}</span>
+                            <span style="color: #38bdf8; font-size: 0.85rem;">{{ $p->patron_contact ?? '—' }}</span>
                         </td>
-                        <td>
-                            <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">
-                                {{ $p->camp_contingent_count }} <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">youths</span>
+                        <td style="text-align: center;">
+                            <div style="font-family: var(--font-display); font-weight: 800; font-size: 1.1rem; color: #fff;">
+                                {{ $p->camp_contingent_count }}
+                                <span style="font-size: 0.72rem; font-weight: 500; color: var(--text-muted);">youths</span>
                             </div>
-                            <div style="font-size: 0.75rem; color: #94a3b8;">
+                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.1rem;">
                                 ♂ {{ $p->male_count }} &bull; ♀ {{ $p->female_count }}
                             </div>
                         </td>
-                        <td>
+                        <td style="text-align: center;">
                             @if($p->camp_checked_in)
-                                <span class="badge badge-completed">✓ Checked In</span>
+                                <span class="badge badge-completed">✓ In Camp</span>
                             @else
-                                <span class="badge badge-scheduled">⏳ Pending Arrival</span>
+                                <span class="badge badge-scheduled">⏳ Pending</span>
                             @endif
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" style="text-align: center; padding: 3.5rem 1rem; color: var(--text-muted);">
-                            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⛪</div>
-                            <div style="font-size: 1.1rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">No Parishes Found</div>
-                            <p style="font-size: 0.9rem; max-width: 500px; margin: 0 auto; color: var(--text-muted);">
-                                @if($search || $deanery || $status)
-                                    No parishes match your active filter criteria. Try resetting the filters.
-                                @else
-                                    No parishes have been registered in the system yet. Parishes added in the Admin panel will appear here.
-                                @endif
-                            </p>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="empty-icon">⛪</div>
+                                <h3>No Parishes Found</h3>
+                                <p>
+                                    @if($search || $deanery || $status)
+                                        No parishes match your filters — try resetting them.
+                                    @else
+                                        No parishes have been registered yet. Entries added in the Admin panel appear here.
+                                    @endif
+                                </p>
+                            </div>
                         </td>
                     </tr>
                 @endforelse
@@ -149,4 +156,5 @@
         </table>
     </div>
 </div>
+
 @endsection

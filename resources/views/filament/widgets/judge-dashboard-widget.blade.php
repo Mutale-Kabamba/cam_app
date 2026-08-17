@@ -6,68 +6,137 @@
         $liveSchedule = $data['liveSchedule'];
         $scoresCount = $data['scoresCount'];
         $totalCategories = $data['totalCategories'];
+        $progressPct = $totalCategories > 0 ? min(100, round(($scoresCount / $totalCategories) * 100)) : 0;
     @endphp
 
-    <div class="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-white to-white p-6 shadow-md dark:border-amber-500/20 dark:from-amber-950/40 dark:via-gray-900 dark:to-gray-900">
-        <div class="flex flex-wrap items-center justify-between gap-6">
-            <div class="space-y-1">
-                <div class="flex items-center gap-2">
-                    <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-black uppercase tracking-wider text-amber-800 dark:bg-amber-900/50 dark:text-amber-300">
-                        ⚖️ {{ $judgeName }} Console
+    {{-- Live Stage Alert --}}
+    @if($liveSchedule && $liveSchedule->parish)
+        <x-filament::section class="mb-4">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <span class="relative flex h-3 w-3">
+                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-danger-400 opacity-75"></span>
+                        <span class="relative inline-flex h-3 w-3 rounded-full bg-danger-500"></span>
                     </span>
-                    <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">&bull; CAM Festival Official Adjudication</span>
+                    <div>
+                        <p class="text-xs font-black uppercase tracking-widest text-danger-600 dark:text-danger-400">⚡ Live on Stage Now</p>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                            {{ $liveSchedule->activity_title }}
+                            &bull; <span class="text-primary-600 dark:text-primary-400">{{ $liveSchedule->parish->name }}</span>
+                        </p>
+                    </div>
                 </div>
-                <h2 class="text-2xl font-black tracking-tight text-gray-900 dark:text-white sm:text-3xl">
-                    Adjudicator Scoring Workstation
-                </h2>
-                <p class="text-xs font-medium text-gray-600 dark:text-gray-400">
-                    Submit criteria marks, score live performances on stage, and review locked rubric scorecards.
-                </p>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-3">
-                <a
-                    href="{{ \App\Filament\Pages\JudgeWorkstation::getUrl() }}"
-                    class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-3 text-xs font-black text-slate-950 shadow-md transition hover:from-amber-400 hover:to-amber-500 hover:scale-[1.02]"
+                <x-filament::button
+                    color="danger"
+                    size="sm"
+                    tag="a"
+                    href="{{ \App\Filament\Pages\JudgeWorkstation::getUrl(['category_id' => $liveSchedule->category_id]) }}"
                 >
-                    <span>⚖️ Launch Judge Workstation</span>
-                    <span>➔</span>
-                </a>
-
-                @if($liveSchedule && $liveSchedule->parish)
-                    <a
-                        href="{{ \App\Filament\Pages\JudgeWorkstation::getUrl(['category_id' => $liveSchedule->category_id]) }}"
-                        class="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-xs font-bold text-red-700 shadow transition hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-300"
-                    >
-                        <span class="relative flex h-2.5 w-2.5">
-                            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
-                            <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500"></span>
-                        </span>
-                        <span>Score LIVE: {{ $liveSchedule->parish->name }}</span>
-                    </a>
-                @endif
+                    Score Live Performance →
+                </x-filament::button>
             </div>
+        </x-filament::section>
+    @endif
+
+    {{-- Hero Section --}}
+    <x-filament::section>
+        <x-slot name="heading">
+            <div class="flex items-center gap-2">
+                <x-filament::badge color="warning">{{ $judgeName }}</x-filament::badge>
+                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Official Adjudicator Console</span>
+            </div>
+        </x-slot>
+
+        <x-slot name="description">
+            Submit criteria marks, score live performances on stage, and review locked rubric scorecards.
+        </x-slot>
+
+        <x-slot name="headerEnd">
+            <x-filament::button
+                tag="a"
+                href="{{ \App\Filament\Pages\JudgeWorkstation::getUrl() }}"
+                icon="heroicon-m-scale"
+            >
+                Open Workstation
+            </x-filament::button>
+        </x-slot>
+
+        {{-- Progress Bar --}}
+        <div class="mb-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <span class="font-semibold">Scoring Progress</span>
+            <span>{{ $scoresCount }} of {{ $totalCategories }} categories submitted</span>
         </div>
+        <div class="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
+            <div
+                class="h-full rounded-full bg-primary-500 transition-all duration-700"
+                style="width: {{ $progressPct }}%"
+            ></div>
+        </div>
+    </x-filament::section>
 
-        <div class="mt-5 grid grid-cols-2 gap-4 border-t border-gray-200/80 pt-4 dark:border-gray-800 sm:grid-cols-4">
-            <div>
-                <div class="text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400">Assigned Identity</div>
-                <div class="text-base font-extrabold text-amber-600 dark:text-amber-400">{{ $judgeName }}</div>
-            </div>
-            <div>
-                <div class="text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400">Evaluations Submitted</div>
-                <div class="text-base font-extrabold text-gray-900 dark:text-white">{{ $scoresCount }}</div>
-            </div>
-            <div>
-                <div class="text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400">Competition Categories</div>
-                <div class="text-base font-extrabold text-gray-900 dark:text-white">{{ $totalCategories }} Events</div>
-            </div>
-            <div>
-                <div class="text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400">Stage Status</div>
-                <div class="text-base font-extrabold {{ $liveSchedule ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400' }}">
-                    {{ $liveSchedule ? '● Performance LIVE' : '⏳ Intermission' }}
+    {{-- Stats Grid --}}
+    <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+
+        <x-filament::section compact>
+            <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary-50 dark:bg-primary-950/30">
+                    <x-filament::icon icon="heroicon-m-user" class="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400">Assigned Identity</p>
+                    <p class="text-base font-black text-primary-600 dark:text-primary-400">{{ $judgeName }}</p>
+                    <p class="text-xs text-gray-400">Official Adjudicator</p>
                 </div>
             </div>
-        </div>
+        </x-filament::section>
+
+        <x-filament::section compact>
+            <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-success-50 dark:bg-success-950/30">
+                    <x-filament::icon icon="heroicon-m-check-badge" class="h-5 w-5 text-success-600 dark:text-success-400" />
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400">Evaluations Submitted</p>
+                    <p class="text-2xl font-black text-gray-900 dark:text-white leading-none">{{ $scoresCount }}</p>
+                    <p class="text-xs text-gray-400">scorecards locked</p>
+                </div>
+            </div>
+        </x-filament::section>
+
+        <x-filament::section compact>
+            <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-info-50 dark:bg-info-950/30">
+                    <x-filament::icon icon="heroicon-m-trophy" class="h-5 w-5 text-info-600 dark:text-info-400" />
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400">Competition Categories</p>
+                    <p class="text-2xl font-black text-gray-900 dark:text-white leading-none">{{ $totalCategories }}</p>
+                    <p class="text-xs text-gray-400">competition events</p>
+                </div>
+            </div>
+        </x-filament::section>
+
+        <x-filament::section compact>
+            <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl
+                    {{ $liveSchedule ? 'bg-danger-50 dark:bg-danger-950/30' : 'bg-gray-100 dark:bg-white/10' }}">
+                    <x-filament::icon
+                        icon="{{ $liveSchedule ? 'heroicon-m-musical-note' : 'heroicon-m-pause-circle' }}"
+                        class="h-5 w-5 {{ $liveSchedule ? 'text-danger-600 dark:text-danger-400' : 'text-gray-400' }}"
+                    />
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400">Stage Status</p>
+                    <p class="text-sm font-bold {{ $liveSchedule ? 'text-danger-600 dark:text-danger-400' : 'text-gray-500 dark:text-gray-400' }}">
+                        {{ $liveSchedule ? '● Performance LIVE' : 'Intermission' }}
+                    </p>
+                    <p class="text-xs text-gray-400 truncate">
+                        {{ $liveSchedule?->parish?->name ?? 'No active performance' }}
+                    </p>
+                </div>
+            </div>
+        </x-filament::section>
+
     </div>
+
 </x-filament-widgets::widget>

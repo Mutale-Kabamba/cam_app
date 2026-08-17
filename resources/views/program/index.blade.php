@@ -2,156 +2,166 @@
 
 @section('title', 'Festival Timetable & Live Tracker')
 
-@section('content')
-<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+@section('hero')
+<div class="page-hero-eyebrow">📅 Live Competition Schedule</div>
+<div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
     <div>
-        <h2 style="font-family: var(--font-display); font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem;">
-            📅 Festival Timetable & Schedule Tracker
-        </h2>
-        <p style="color: var(--text-muted);">Real-time competition performance order, allocated times, and live status.</p>
+        <h2>Festival Timetable &amp; Schedule Tracker</h2>
+        <p>Real-time performance order, venue assignments, and live stage status — updated instantly.</p>
     </div>
-    <div>
-        <a href="{{ route('leaderboard.big_screen') }}" class="btn btn-primary" target="_blank">
-            📺 Launch Big Screen Mode
-        </a>
-    </div>
+    <a href="{{ route('leaderboard.big_screen') }}" class="btn btn-primary" target="_blank" style="flex-shrink: 0;">
+        📺 Launch Big Screen
+    </a>
 </div>
+@endsection
 
-<div class="grid-stats">
-    <div class="stat-card">
-        <div class="stat-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.15);">🏆</div>
+@section('content')
+
+{{-- Stats --}}
+<div class="grid-stats animate-in">
+    <div class="stat-card animate-in animate-in-delay-1" style="--stat-color: #f59e0b;">
+        <div class="stat-icon" style="color: #f59e0b; background: rgba(245,158,11,0.12);">🏆</div>
         <div class="stat-content">
-            <h4>Total Categories</h4>
+            <h4>Categories</h4>
             <div class="stat-val">{{ $stats['total_categories'] }}</div>
+            <div class="stat-sub">competition events</div>
         </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="color: #ef4444; background: rgba(239, 68, 68, 0.15);">⚡</div>
+    <div class="stat-card animate-in animate-in-delay-2" style="--stat-color: #ef4444;">
+        <div class="stat-icon" style="color: #ef4444; background: rgba(239,68,68,0.12);">⚡</div>
         <div class="stat-content">
-            <h4>In Progress (On Stage)</h4>
+            <h4>Live on Stage</h4>
             <div class="stat-val">{{ $stats['in_progress'] }}</div>
+            <div class="stat-sub">performing now</div>
         </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="color: #3b82f6; background: rgba(59, 130, 246, 0.15);">⏳</div>
+    <div class="stat-card animate-in animate-in-delay-3" style="--stat-color: #3b82f6;">
+        <div class="stat-icon" style="color: #3b82f6; background: rgba(59,130,246,0.12);">⏳</div>
         <div class="stat-content">
             <h4>Upcoming</h4>
             <div class="stat-val">{{ $stats['upcoming'] }}</div>
+            <div class="stat-sub">scheduled ahead</div>
         </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.15);">✅</div>
+    <div class="stat-card animate-in animate-in-delay-4" style="--stat-color: #10b981;">
+        <div class="stat-icon" style="color: #10b981; background: rgba(16,185,129,0.12);">✅</div>
         <div class="stat-content">
             <h4>Completed</h4>
             <div class="stat-val">{{ $stats['completed'] }}</div>
+            <div class="stat-sub">finished performances</div>
         </div>
     </div>
 </div>
 
-<div class="glass-card" style="margin-bottom: 1.5rem;">
-    <form method="GET" action="{{ route('program.index') }}" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-        <div>
-            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem;">Day Filter</label>
-            <select name="day_name" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-card); color: #fff; padding: 0.55rem 1rem; border-radius: 8px; font-weight: 500;" onchange="this.form.submit()">
+{{-- Filters --}}
+<div class="glass-card" style="margin-bottom: 1.5rem; padding: 1.1rem 1.35rem;">
+    <form method="GET" action="{{ route('program.index') }}" class="filter-bar">
+        <div class="filter-group">
+            <label>Day</label>
+            <select name="day_name" onchange="this.form.submit()">
                 <option value="">All Days</option>
-                @php
-                    $daysList = !empty($availableDays) ? $availableDays : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                @endphp
+                @php $daysList = !empty($availableDays) ? $availableDays : ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']; @endphp
                 @foreach($daysList as $day)
                     <option value="{{ $day }}" {{ $selectedDay == $day ? 'selected' : '' }}>{{ $day }}</option>
                 @endforeach
             </select>
         </div>
-
-        <div>
-            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem;">Category Filter</label>
-            <select name="category_id" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-card); color: #fff; padding: 0.55rem 1rem; border-radius: 8px; font-weight: 500;" onchange="this.form.submit()">
+        <div class="filter-group">
+            <label>Category</label>
+            <select name="category_id" onchange="this.form.submit()">
                 <option value="">All Categories</option>
                 @foreach($categories as $cat)
                     <option value="{{ $cat->id }}" {{ $selectedCategory == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
                 @endforeach
             </select>
         </div>
-        
         @if($selectedCategory || $selectedDay)
             <div style="margin-top: auto;">
-                <a href="{{ route('program.index') }}" class="btn btn-secondary" style="padding: 0.55rem 1rem;">Reset Filters</a>
+                <a href="{{ route('program.index') }}" class="btn btn-secondary btn-sm">✕ Reset</a>
             </div>
         @endif
     </form>
 </div>
 
-<div class="glass-card">
+{{-- Schedule Table --}}
+<div class="glass-card" style="padding: 0; overflow: hidden;">
     <div class="table-responsive">
         <table>
             <thead>
                 <tr>
-                    <th>Order #</th>
+                    <th style="width: 60px;">#</th>
                     <th>Time Slot</th>
                     <th>Venue</th>
-                    <th>Parish / Participant</th>
+                    <th>Parish / Activity</th>
                     <th>Category</th>
                     <th>Status</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($scheduleItems as $item)
-                    <tr>
+                    <tr class="{{ $item->status === 'live' || $item->status === 'in_progress' ? 'live-row' : '' }}">
                         <td>
-                            <span style="display: inline-flex; width: 32px; height: 32px; background: rgba(255,255,255,0.06); border-radius: 8px; align-items: center; justify-content: center; font-weight: 700; color: #f59e0b;">
-                                {{ $item->performance_order ?? '-' }}
+                            <span style="display: inline-flex; width: 32px; height: 32px; background: var(--primary-dim); border-radius: 9px; align-items: center; justify-content: center; font-weight: 800; color: #f59e0b; font-family: var(--font-display);">
+                                {{ $item->performance_order ?? '—' }}
                             </span>
                         </td>
                         <td>
-                            <strong style="color: #fff;">{{ \Carbon\Carbon::parse($item->scheduled_start_time)->format('H:i') }} - {{ \Carbon\Carbon::parse($item->scheduled_end_time)->format('H:i') }}</strong>
-                            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ $item->day_name }}</div>
+                            <div style="font-weight: 700; color: #fff; font-size: 0.92rem;">
+                                {{ \Carbon\Carbon::parse($item->scheduled_start_time)->format('H:i') }}
+                                <span style="color: var(--text-muted); font-weight: 500;">→</span>
+                                {{ \Carbon\Carbon::parse($item->scheduled_end_time)->format('H:i') }}
+                            </div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.1rem;">{{ $item->day_name }}</div>
                         </td>
                         <td>
-                            <span style="display: inline-flex; align-items: center; gap: 0.3rem; color: #cbd5e1;">
+                            <span style="display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.82rem; color: var(--text-sub);">
                                 📍 {{ $item->venue }}
                             </span>
                         </td>
                         <td>
-                            <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">
-                                {{ $item->activity_title }}
-                            </div>
+                            <div style="font-weight: 700; color: #fff; font-size: 0.92rem;">{{ $item->activity_title }}</div>
                             @if($item->parish)
-                                <div style="font-size: 0.8rem; color: #f59e0b; font-weight: 600; margin-top: 0.15rem;">
-                                    ⛪ {{ $item->parish->name }} &bull; <span style="color: #94a3b8;">{{ $item->parish->deanery }}</span>
+                                <div style="font-size: 0.75rem; color: #f59e0b; font-weight: 600; margin-top: 0.12rem;">
+                                    ⛪ {{ $item->parish->name }}
+                                    <span style="color: var(--text-muted); font-weight: 500;">· {{ $item->parish->deanery }}</span>
                                 </div>
                             @else
-                                <div style="font-size: 0.75rem; color: #38bdf8; margin-top: 0.15rem;">
-                                    Diocesan Assembly
-                                </div>
+                                <div style="font-size: 0.7rem; color: #38bdf8; margin-top: 0.12rem;">Diocesan Assembly</div>
                             @endif
                         </td>
                         <td>
-                            <span style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; padding: 0.25rem 0.6rem; border-radius: 6px; font-weight: 600; font-size: 0.8rem;">
-                                {{ $item->category?->name ?? 'General' }}
-                            </span>
+                            @if($item->category)
+                                <span style="background: rgba(59,130,246,0.10); color: #60a5fa; border: 1px solid rgba(59,130,246,0.22); padding: 0.25rem 0.65rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;">
+                                    {{ $item->category->name }}
+                                </span>
+                            @else
+                                <span style="color: var(--text-muted); font-size: 0.78rem;">General</span>
+                            @endif
                         </td>
                         <td>
                             @if($item->status === 'live' || $item->status === 'in_progress')
-                                <span class="badge badge-live">● ON STAGE</span>
+                                <span class="badge badge-live">● LIVE</span>
                             @elseif($item->status === 'completed')
-                                <span class="badge badge-completed">✓ Finished</span>
+                                <span class="badge badge-completed">✓ Done</span>
                             @else
-                                <span class="badge badge-scheduled">⏳ Scheduled</span>
+                                <span class="badge badge-scheduled">⏳ Soon</span>
                             @endif
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: 3.5rem 1rem; color: var(--text-muted);">
-                            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📅</div>
-                            <div style="font-size: 1.1rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">No Schedule Items Found</div>
-                            <p style="font-size: 0.9rem; max-width: 500px; margin: 0 auto; color: var(--text-muted);">
-                                @if($selectedCategory || $selectedDay)
-                                    No activities match the selected day or category filters. Try resetting the filters.
-                                @else
-                                    No schedule items have been added to the timetable yet. Items created in the Admin panel will appear here in real time.
-                                @endif
-                            </p>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <div class="empty-icon">📅</div>
+                                <h3>No Schedule Items Found</h3>
+                                <p>
+                                    @if($selectedCategory || $selectedDay)
+                                        No activities match your filters. Try resetting them.
+                                    @else
+                                        No schedule has been added yet. Items created in the Admin panel appear here in real time.
+                                    @endif
+                                </p>
+                            </div>
                         </td>
                     </tr>
                 @endforelse
@@ -159,4 +169,5 @@
         </table>
     </div>
 </div>
+
 @endsection

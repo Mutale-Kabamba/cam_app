@@ -6,6 +6,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -38,6 +39,21 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([])
+            ->navigationItems([
+                NavigationItem::make('📥 Download Master Report')
+                    ->url(fn () => route('admin.export.master_report'))
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->group('Downloads & Reports')
+                    ->sort(1)
+                    ->visible(fn () => auth()->user()?->isAdmin() ?? false),
+
+                NavigationItem::make('📋 Parish Import Template')
+                    ->url(fn () => route('admin.export.parishes_template'))
+                    ->icon('heroicon-o-table-cells')
+                    ->group('Downloads & Reports')
+                    ->sort(2)
+                    ->visible(fn () => auth()->user()?->isAdmin() ?? false),
+            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

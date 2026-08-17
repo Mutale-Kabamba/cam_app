@@ -36,3 +36,15 @@ Route::middleware(['auth'])->prefix('judge')->name('judge.')->group(function () 
     Route::get('/scoresheet/{category}/{parish}', [JudgeController::class, 'scoreSheet'])->name('scoresheet');
     Route::post('/submit', [JudgeController::class, 'submitScore'])->name('submit');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Admin Export Routes (Auth-Protected, Admin Only)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])->prefix('admin/export')->name('admin.export.')->group(function () {
+    Route::get('/master-report', [\App\Http\Controllers\Admin\ExportController::class, 'masterReport'])
+        ->name('master_report');
+    Route::get('/parishes-template', [\App\Http\Controllers\Admin\ExportController::class, 'parishImportTemplate'])
+        ->name('parishes_template');
+});
