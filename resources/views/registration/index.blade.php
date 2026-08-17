@@ -129,9 +129,9 @@
                         </td>
                         <td style="text-align: center;">
                             @if($p->camp_checked_in)
-                                <span class="badge badge-completed">✓ In Camp</span>
+                                <span class="badge badge-completed">✓ Checked In</span>
                             @else
-                                <span class="badge badge-scheduled">⏳ Pending</span>
+                                <span class="badge badge-scheduled">⏳ Pending Arrival</span>
                             @endif
                         </td>
                     </tr>

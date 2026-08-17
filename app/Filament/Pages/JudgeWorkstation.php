@@ -221,18 +221,42 @@ class JudgeWorkstation extends Page
         $categories = Category::all();
         $activeCategory = Category::find($this->selectedCategoryId) ?? $categories->first();
 
+        $allParishes = Parish::orderBy('name')->get();
+        $totalParishes = $allParishes->count();
+
+        $hasAnyParticipationSet = $allParishes->contains(function ($p) {
+            return !empty($p->participating_categories) && is_array($p->participating_categories);
+        });
+        $hasAnyScheduleSet = ScheduleItem::whereNotNull('category_id')->whereNotNull('parish_id')->exists();
+
         $scheduledParishIds = [];
+        $categorySchedules = [];
         if ($this->selectedCategoryId) {
-            $scheduledParishIds = ScheduleItem::where('category_id', $this->selectedCategoryId)
+            $categorySchedules = ScheduleItem::where('category_id', $this->selectedCategoryId)
                 ->whereNotNull('parish_id')
-                ->pluck('parish_id')
-                ->toArray();
+                ->get()
+                ->keyBy('parish_id');
+
+            $scheduledParishIds = $categorySchedules->keys()->toArray();
         }
 
-        if (!empty($scheduledParishIds)) {
-            $parishes = Parish::whereIn('id', $scheduledParishIds)->orderBy('name')->get();
+        if ($this->selectedCategoryId && ($hasAnyParticipationSet || $hasAnyScheduleSet)) {
+            $parishes = $allParishes->filter(function (Parish $p) use ($scheduledParishIds) {
+                // 1. Is it specifically scheduled for this category in the timetable?
+                if (in_array($p->id, $scheduledParishIds)) {
+                    return true;
+                }
+                // 2. Is this category ticked in its participating_categories?
+                if (!empty($p->participating_categories) && is_array($p->participating_categories)) {
+                    return in_array($this->selectedCategoryId, $p->participating_categories)
+                        || in_array((string)$this->selectedCategoryId, $p->participating_categories)
+                        || in_array((int)$this->selectedCategoryId, $p->participating_categories);
+                }
+                return false;
+            })->values();
         } else {
-            $parishes = Parish::orderBy('name')->get();
+            // If zero participation or schedules are configured yet, display all parishes as default fallback
+            $parishes = $allParishes;
         }
 
         $scores = AdjudicationScore::where('category_id', $this->selectedCategoryId)
@@ -246,12 +270,40 @@ class JudgeWorkstation extends Page
 
         $scoringParish = $this->scoringParishId ? Parish::find($this->scoringParishId) : null;
 
+        // Augment categories with their individual participant counts for the tab badges
+        $categoriesWithCounts = $categories->map(function ($cat) use ($allParishes, $hasAnyParticipationSet, $hasAnyScheduleSet) {
+            $catScheduledIds = ScheduleItem::where('category_id', $cat->id)
+                ->whereNotNull('parish_id')
+                ->pluck('parish_id')
+                ->toArray();
+
+            if ($hasAnyParticipationSet || $hasAnyScheduleSet) {
+                $targetCount = $allParishes->filter(function (Parish $p) use ($cat, $catScheduledIds) {
+                    if (in_array($p->id, $catScheduledIds)) {
+                        return true;
+                    }
+                    if (!empty($p->participating_categories) && is_array($p->participating_categories)) {
+                        return in_array($cat->id, $p->participating_categories)
+                            || in_array((string)$cat->id, $p->participating_categories)
+                            || in_array((int)$cat->id, $p->participating_categories);
+                    }
+                    return false;
+                })->count();
+            } else {
+                $targetCount = $allParishes->count();
+            }
+
+            $cat->participant_count = $targetCount;
+            return $cat;
+        });
+
         return [
-            'categories' => $categories,
+            'categories' => $categoriesWithCounts,
             'activeCategory' => $activeCategory,
             'parishes' => $parishes,
             'scores' => $scores,
             'liveSchedule' => $liveSchedule,
+            'categorySchedules' => $categorySchedules,
             'scoringParish' => $scoringParish,
             'judges' => ['Judge 1', 'Judge 2', 'Judge 3'],
         ];

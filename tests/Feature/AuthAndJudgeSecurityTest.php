@@ -156,13 +156,112 @@ class AuthAndJudgeSecurityTest extends TestCase
         $listResponse = $this->actingAs($admin)->get('/admin/parishes');
         $listResponse->assertStatus(200);
 
-        // Parishes create page with datalist suggestions
+        // Parishes create page with datalist suggestions and categories selection
         $createResponse = $this->actingAs($admin)->get('/admin/parishes/create');
         $createResponse->assertStatus(200);
         $createResponse->assertSee('Livingstone Deanery');
         $createResponse->assertSee('Sesheke Deanery');
         $createResponse->assertSee('Sioma Deanery');
         $createResponse->assertSee('St. Theresa', false);
+        $createResponse->assertSee('Competition Participation');
+        $createResponse->assertSee('Participating Categories');
+    }
+
+    public function test_admin_can_create_parish_with_selected_participating_categories()
+    {
+        $admin = User::where('email', 'admin@camfestival.org')->first();
+        $category = Category::create([
+            'name' => 'Choir Music',
+            'slug' => 'choir-music',
+            'type' => 'stage_performance',
+            'max_raw_score' => 100,
+        ]);
+
+        \Livewire\Livewire::actingAs($admin)
+            ->test(\App\Filament\Resources\ParishResource\Pages\CreateParish::class)
+            ->fillForm([
+                'name' => 'St. Jude Parish',
+                'code' => 'SJP',
+                'deanery' => 'Livingstone Deanery',
+                'male_count' => 15,
+                'female_count' => 10,
+                'participating_categories' => [$category->id],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('parishes', [
+            'name' => 'St. Jude Parish',
+            'code' => 'SJP',
+            'camp_contingent_count' => 25,
+        ]);
+
+        $createdParish = Parish::where('code', 'SJP')->first();
+        $this->assertContains($category->id, $createdParish->participating_categories);
+    }
+
+    public function test_judge_workstation_filters_parishes_by_participating_categories()
+    {
+        $judge = User::where('email', 'judge1@camfestival.org')->first();
+
+        $choirCat = Category::create([
+            'name' => 'Choir Music',
+            'slug' => 'choir',
+            'type' => 'stage_performance',
+            'max_raw_score' => 100,
+        ]);
+
+        $dramaCat = Category::create([
+            'name' => 'Drama',
+            'slug' => 'drama',
+            'type' => 'stage_performance',
+            'max_raw_score' => 100,
+        ]);
+
+        $poetryCat = Category::create([
+            'name' => 'Poetry',
+            'slug' => 'poetry',
+            'type' => 'stage_performance',
+            'max_raw_score' => 100,
+        ]);
+
+        // Parish 1 is only in Choir
+        $choirParish = Parish::create([
+            'name' => 'St. Theresa Choir Only',
+            'code' => 'STC',
+            'deanery' => 'Livingstone Deanery',
+            'participating_categories' => [$choirCat->id],
+        ]);
+
+        // Parish 2 is only in Drama
+        $dramaParish = Parish::create([
+            'name' => 'Holy Cross Drama Only',
+            'code' => 'HCD',
+            'deanery' => 'Livingstone Deanery',
+            'participating_categories' => [$dramaCat->id],
+        ]);
+
+        // Test Choir Category: only choirParish should appear
+        $choirView = \Livewire\Livewire::actingAs($judge)
+            ->test(\App\Filament\Pages\JudgeWorkstation::class)
+            ->call('selectCategory', $choirCat->id)
+            ->assertSee('St. Theresa Choir Only')
+            ->assertDontSee('Holy Cross Drama Only');
+
+        // Test Drama Category: only dramaParish should appear
+        $dramaView = \Livewire\Livewire::actingAs($judge)
+            ->test(\App\Filament\Pages\JudgeWorkstation::class)
+            ->call('selectCategory', $dramaCat->id)
+            ->assertSee('Holy Cross Drama Only')
+            ->assertDontSee('St. Theresa Choir Only');
+
+        // Test Poetry Category: neither should appear
+        $poetryView = \Livewire\Livewire::actingAs($judge)
+            ->test(\App\Filament\Pages\JudgeWorkstation::class)
+            ->call('selectCategory', $poetryCat->id)
+            ->assertDontSee('St. Theresa Choir Only')
+            ->assertDontSee('Holy Cross Drama Only')
+            ->assertSee('No Parishes Scheduled');
     }
 
     public function test_judge_can_submit_score_via_filament_workstation()

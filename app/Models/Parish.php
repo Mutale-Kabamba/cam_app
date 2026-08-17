@@ -8,6 +8,14 @@ class Parish extends Model
 {
     protected $guarded = [];
 
+    protected $casts = [
+        'participating_categories' => 'array',
+        'camp_checked_in' => 'boolean',
+        'male_count' => 'integer',
+        'female_count' => 'integer',
+        'camp_contingent_count' => 'integer',
+    ];
+
     protected static function booted(): void
     {
         static::saving(function (Parish $parish) {

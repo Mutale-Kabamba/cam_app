@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ParishResource\Pages;
 use App\Models\Parish;
+use App\Models\Category;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -134,6 +135,22 @@ class ParishResource extends Resource
                             ->required(),
                     ])->columns(3),
 
+                Forms\Components\Section::make('Competition Participation')
+                    ->description('Tick the festival categories this parish contingent is participating in.')
+                    ->schema([
+                        Forms\Components\CheckboxList::make('participating_categories')
+                            ->label('Participating Categories')
+                            ->options(fn () => Category::orderBy('id')->pluck('name', 'id')->toArray())
+                            ->descriptions(fn () => Category::orderBy('id')->get()->mapWithKeys(function ($cat) {
+                                return [$cat->id => "Max {$cat->max_raw_score} pts" . ($cat->allocated_minutes > 0 ? " • {$cat->allocated_minutes} mins" : '')];
+                            })->toArray())
+                            ->columns(2)
+                            ->gridDirection('row')
+                            ->bulkToggleable()
+                            ->searchable()
+                            ->helperText('Tick all the events this parish is entered to compete in at the CAM Festival.'),
+                    ]),
+
                 Forms\Components\Section::make('Contingent & Headcount by Gender')
                     ->description('Record youth contingent numbers per gender. Total headcount is calculated automatically.')
                     ->schema([
@@ -219,6 +236,24 @@ class ParishResource extends Resource
                     ->sortable()
                     ->alignCenter()
                     ->weight('bold'),
+                Tables\Columns\TextColumn::make('participating_categories')
+                    ->label('Events')
+                    ->formatStateUsing(function ($state, Parish $record) {
+                        if (empty($record->participating_categories)) {
+                            return 'All Events';
+                        }
+                        $count = count($record->participating_categories);
+                        return "{$count} Event" . ($count > 1 ? 's' : '');
+                    })
+                    ->badge()
+                    ->color('warning')
+                    ->tooltip(function (Parish $record) {
+                        if (empty($record->participating_categories)) {
+                            return 'Participating in all categories';
+                        }
+                        return implode(', ', Category::whereIn('id', $record->participating_categories)->pluck('name')->toArray());
+                    })
+                    ->alignCenter(),
                 Tables\Columns\ToggleColumn::make('camp_checked_in')
                     ->label('Checked In')
                     ->sortable()
