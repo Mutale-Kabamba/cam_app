@@ -43,9 +43,9 @@
 
 <div class="glass-card" style="margin-bottom: 1.5rem;">
     <form method="GET" action="{{ route('registration.index') }}" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-        <div style="flex: 1; min-width: 240px;">
+        <div style="flex: 1; min-width: 220px;">
             <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem;">Search Parish</label>
-            <input type="text" name="search" value="{{ $search }}" placeholder="Search checked-in parishes by Name, Code or Patron..." style="width: 100%; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-card); color: #fff; padding: 0.55rem 1rem; border-radius: 8px;">
+            <input type="text" name="search" value="{{ $search }}" placeholder="Search by Parish Name, Code or Patron..." style="width: 100%; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-card); color: #fff; padding: 0.55rem 1rem; border-radius: 8px;">
         </div>
 
         <div>
@@ -58,9 +58,18 @@
             </select>
         </div>
 
+        <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem;">Check-In Status</label>
+            <select name="status" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-card); color: #fff; padding: 0.55rem 1rem; border-radius: 8px;" onchange="this.form.submit()">
+                <option value="">All Statuses</option>
+                <option value="checked_in" {{ ($status ?? '') == 'checked_in' ? 'selected' : '' }}>✓ Checked In</option>
+                <option value="pending" {{ ($status ?? '') == 'pending' ? 'selected' : '' }}>⏳ Pending Arrival</option>
+            </select>
+        </div>
+
         <div style="margin-top: auto; display: flex; gap: 0.5rem;">
             <button type="submit" class="btn btn-primary" style="padding: 0.55rem 1.25rem;">Filter</button>
-            @if($search || $deanery)
+            @if($search || $deanery || $status)
                 <a href="{{ route('registration.index') }}" class="btn btn-secondary" style="padding: 0.55rem 1rem;">Reset</a>
             @endif
         </div>
@@ -106,14 +115,22 @@
                             @if($p->camp_checked_in)
                                 <span class="badge badge-completed">✓ Checked In</span>
                             @else
-                                <span class="badge badge-scheduled">Pending Arrival</span>
+                                <span class="badge badge-scheduled">⏳ Pending Arrival</span>
                             @endif
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-                            No parishes found matching your query.
+                        <td colspan="7" style="text-align: center; padding: 3.5rem 1rem; color: var(--text-muted);">
+                            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⛪</div>
+                            <div style="font-size: 1.1rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">No Parishes Found</div>
+                            <p style="font-size: 0.9rem; max-width: 500px; margin: 0 auto; color: var(--text-muted);">
+                                @if($search || $deanery || $status)
+                                    No parishes match your active filter criteria. Try resetting the filters.
+                                @else
+                                    No parishes have been registered in the system yet. Parishes added in the Admin panel will appear here.
+                                @endif
+                            </p>
                         </td>
                     </tr>
                 @endforelse

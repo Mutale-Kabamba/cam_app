@@ -53,13 +53,13 @@
         <div>
             <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem;">Day Filter</label>
             <select name="day_name" style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-card); color: #fff; padding: 0.55rem 1rem; border-radius: 8px; font-weight: 500;" onchange="this.form.submit()">
-                <option value="Monday" {{ $selectedDay == 'Monday' ? 'selected' : '' }}>Monday</option>
-                <option value="Tuesday" {{ $selectedDay == 'Tuesday' ? 'selected' : '' }}>Tuesday</option>
-                <option value="Wednesday" {{ $selectedDay == 'Wednesday' ? 'selected' : '' }}>Wednesday</option>
-                <option value="Thursday" {{ $selectedDay == 'Thursday' ? 'selected' : '' }}>Thursday</option>
-                <option value="Friday" {{ $selectedDay == 'Friday' ? 'selected' : '' }}>Friday</option>
-                <option value="Saturday" {{ $selectedDay == 'Saturday' ? 'selected' : '' }}>Saturday</option>
-                <option value="Sunday" {{ $selectedDay == 'Sunday' ? 'selected' : '' }}>Sunday</option>
+                <option value="">All Days</option>
+                @php
+                    $daysList = !empty($availableDays) ? $availableDays : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                @endphp
+                @foreach($daysList as $day)
+                    <option value="{{ $day }}" {{ $selectedDay == $day ? 'selected' : '' }}>{{ $day }}</option>
+                @endforeach
             </select>
         </div>
 
@@ -142,8 +142,16 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-                            No schedule items found for the selected day/category.
+                        <td colspan="6" style="text-align: center; padding: 3.5rem 1rem; color: var(--text-muted);">
+                            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📅</div>
+                            <div style="font-size: 1.1rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">No Schedule Items Found</div>
+                            <p style="font-size: 0.9rem; max-width: 500px; margin: 0 auto; color: var(--text-muted);">
+                                @if($selectedCategory || $selectedDay)
+                                    No activities match the selected day or category filters. Try resetting the filters.
+                                @else
+                                    No schedule items have been added to the timetable yet. Items created in the Admin panel will appear here in real time.
+                                @endif
+                            </p>
                         </td>
                     </tr>
                 @endforelse

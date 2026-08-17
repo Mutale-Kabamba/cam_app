@@ -111,8 +111,12 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-                                Official results for this category have not been finalized yet. Check back soon!
+                            <td colspan="7" style="text-align: center; padding: 3.5rem 1rem; color: var(--text-muted);">
+                                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⚖️</div>
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">Results Pending Finalization</div>
+                                <p style="font-size: 0.9rem; max-width: 500px; margin: 0 auto; color: var(--text-muted);">
+                                    Official results for {{ $activeCat?->name }} have not been finalized or published yet.
+                                </p>
                             </td>
                         </tr>
                     @endforelse
@@ -160,7 +164,7 @@
                                 <span style="color: #cbd5e1;">{{ $item['parish']->deanery ?? 'Livingstone' }}</span>
                             </td>
                             <td>
-                                <span>{{ $item['categories_participated'] }} of 8</span>
+                                <span>{{ $item['categories_participated'] }} of {{ $categories->count() }}</span>
                             </td>
                             <td>
                                 <strong style="color: #38bdf8;">{{ $item['average_score'] }}%</strong>
@@ -173,8 +177,12 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-                                No parish points recorded yet.
+                            <td colspan="6" style="text-align: center; padding: 3.5rem 1rem; color: var(--text-muted);">
+                                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏆</div>
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">No Standings Recorded Yet</div>
+                                <p style="font-size: 0.9rem; max-width: 500px; margin: 0 auto; color: var(--text-muted);">
+                                    Parish standings and championship points will appear here automatically once official results are consolidated.
+                                </p>
                             </td>
                         </tr>
                     @endforelse

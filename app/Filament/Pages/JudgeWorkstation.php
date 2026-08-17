@@ -131,19 +131,29 @@ class JudgeWorkstation extends Page
         $cleanedScores = [];
         $totalRaw = 0;
 
-        foreach ($criteria as $index => $criterion) {
-            $key = $criterion['no'] ?? ($index + 1);
-            $maxPts = floatval($criterion['possible_score'] ?? 100);
-            $entered = floatval($this->criteriaScores[$key] ?? 0);
+        if (!empty($criteria)) {
+            foreach ($criteria as $index => $criterion) {
+                $key = $criterion['no'] ?? ($index + 1);
+                $maxPts = floatval($criterion['possible_score'] ?? 100);
+                $entered = floatval($this->criteriaScores[$key] ?? 0);
 
-            if ($entered < 0) {
-                $entered = 0;
-            } elseif ($entered > $maxPts) {
-                $entered = $maxPts;
+                if ($entered < 0) {
+                    $entered = 0;
+                } elseif ($entered > $maxPts) {
+                    $entered = $maxPts;
+                }
+
+                $cleanedScores[$key] = $entered;
+                $totalRaw += $entered;
             }
-
-            $cleanedScores[$key] = $entered;
-            $totalRaw += $entered;
+        } else {
+            foreach ($this->criteriaScores as $k => $score) {
+                if (is_numeric($score)) {
+                    $val = floatval($score);
+                    $cleanedScores[$k] = $val;
+                    $totalRaw += $val;
+                }
+            }
         }
 
         $maxPossible = $category->max_raw_score > 0 ? $category->max_raw_score : 100;

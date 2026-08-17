@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Models\Category;
 use App\Models\Parish;
+use App\Models\ScheduleItem;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -31,16 +32,37 @@ class AuthAndJudgeSecurityTest extends TestCase
         $response->assertSee('Official Login');
     }
 
-    public function test_only_checked_in_parishes_are_displayed_on_parishes_page()
+    public function test_parishes_page_displays_registered_parishes_and_filters_by_check_in_status()
     {
+        $checkedInParish = Parish::create([
+            'name' => "St. Theresa's Cathedral",
+            'code' => 'STC',
+            'deanery' => 'Livingstone Deanery',
+            'camp_contingent_count' => 30,
+            'camp_checked_in' => true,
+        ]);
+
+        $pendingParish = Parish::create([
+            'name' => 'Kazungula Parish',
+            'code' => 'KZP',
+            'deanery' => 'Livingstone Deanery',
+            'camp_contingent_count' => 25,
+            'camp_checked_in' => false,
+        ]);
+
+        // Default: both appear with their respective status badges
         $response = $this->get('/registration');
         $response->assertStatus(200);
-        
-        // St. Theresa's Cathedral is seeded as checked in
         $response->assertSee("St. Theresa's Cathedral");
-        
-        // Kazungula Parish is seeded as NOT checked in
-        $response->assertDontSee("Kazungula Parish");
+        $response->assertSee("Kazungula Parish");
+        $response->assertSee("Checked In");
+        $response->assertSee("Pending Arrival");
+
+        // Filter: checked_in only
+        $checkedResponse = $this->get('/registration?status=checked_in');
+        $checkedResponse->assertStatus(200);
+        $checkedResponse->assertSee("St. Theresa's Cathedral");
+        $checkedResponse->assertDontSee("Kazungula Parish");
     }
 
     public function test_judge_portal_is_not_public_and_redirects_guests_to_login()
@@ -110,13 +132,23 @@ class AuthAndJudgeSecurityTest extends TestCase
 
     public function test_program_page_includes_monday_in_day_filter_and_shows_monday_events()
     {
+        ScheduleItem::create([
+            'event_date' => '2026-08-17',
+            'day_name' => 'Monday',
+            'scheduled_start_time' => '08:00:00',
+            'scheduled_end_time' => '12:00:00',
+            'venue' => 'Main Gate & Campsite Desk',
+            'activity_title' => 'Parish Contingents Arrival, Accreditation & Campsite Check-In',
+            'status' => 'completed',
+        ]);
+
         $response = $this->get('/program?day_name=Monday');
         $response->assertStatus(200);
         $response->assertSee('Monday');
         $response->assertSee('Parish Contingents Arrival', false);
     }
 
-    public function test_admin_parishes_create_page_includes_deaneries_and_parish_name_dropdown()
+    public function test_admin_parishes_create_page_includes_deaneries_and_parish_name_input()
     {
         $admin = User::where('email', 'admin@camfestival.org')->first();
 
@@ -124,22 +156,35 @@ class AuthAndJudgeSecurityTest extends TestCase
         $listResponse = $this->actingAs($admin)->get('/admin/parishes');
         $listResponse->assertStatus(200);
 
-        // Parishes create page with grouped dropdown
+        // Parishes create page with datalist suggestions
         $createResponse = $this->actingAs($admin)->get('/admin/parishes/create');
         $createResponse->assertStatus(200);
         $createResponse->assertSee('Livingstone Deanery');
         $createResponse->assertSee('Sesheke Deanery');
         $createResponse->assertSee('Sioma Deanery');
         $createResponse->assertSee('St. Theresa', false);
-        $createResponse->assertSee('St. Kizito', false);
-        $createResponse->assertSee('Shangombo Parish', false);
     }
 
     public function test_judge_can_submit_score_via_filament_workstation()
     {
         $judge = User::where('email', 'judge1@camfestival.org')->first();
-        $category = Category::where('slug', 'choir')->first();
-        $parish = Parish::where('code', 'STC')->first();
+
+        $category = Category::create([
+            'name' => 'Choir Music (Melody)',
+            'slug' => 'choir',
+            'type' => 'stage_performance',
+            'max_raw_score' => 100,
+            'allocated_minutes' => 30,
+            'prep_minutes' => 5,
+        ]);
+
+        $parish = Parish::create([
+            'name' => "St. Theresa's Cathedral",
+            'code' => 'STC',
+            'deanery' => 'Livingstone Deanery',
+            'camp_contingent_count' => 30,
+            'camp_checked_in' => true,
+        ]);
 
         \Livewire\Livewire::actingAs($judge)
             ->test(\App\Filament\Pages\JudgeWorkstation::class)
@@ -178,3 +223,4 @@ class AuthAndJudgeSecurityTest extends TestCase
         $this->assertGuest();
     }
 }
+

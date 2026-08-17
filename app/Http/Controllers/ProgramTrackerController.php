@@ -11,17 +11,19 @@ class ProgramTrackerController extends Controller
 {
     public function index(Request $request)
     {
-        $categories = Category::all();
+        $categories = Category::orderBy('name')->get();
         $parishes = Parish::orderBy('name')->get();
         
-        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-        $currentDayName = now()->format('l');
-        $defaultDay = in_array($currentDayName, $days) ? $currentDayName : 'Monday';
+        $availableDays = ScheduleItem::whereNotNull('day_name')
+            ->distinct()
+            ->pluck('day_name')
+            ->toArray();
 
         $selectedCategory = $request->query('category_id');
-        $selectedDay = $request->query('day_name', $defaultDay);
+        $selectedDay = $request->query('day_name');
 
         $query = ScheduleItem::with(['parish', 'category'])
+            ->orderBy('event_date')
             ->orderBy('scheduled_start_time');
 
         if ($selectedDay) {
@@ -41,6 +43,6 @@ class ProgramTrackerController extends Controller
             'upcoming' => ScheduleItem::where('status', 'scheduled')->count(),
         ];
 
-        return view('program.index', compact('scheduleItems', 'categories', 'parishes', 'selectedCategory', 'selectedDay', 'stats'));
+        return view('program.index', compact('scheduleItems', 'categories', 'parishes', 'availableDays', 'selectedCategory', 'selectedDay', 'stats'));
     }
 }

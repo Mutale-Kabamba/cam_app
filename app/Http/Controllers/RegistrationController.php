@@ -11,9 +11,15 @@ class RegistrationController extends Controller
     {
         $search = $request->query('search');
         $deanery = $request->query('deanery');
+        $status = $request->query('status');
 
-        // Only display parishes that have checked in
-        $query = Parish::where('camp_checked_in', true);
+        $query = Parish::query();
+
+        if ($status === 'checked_in') {
+            $query->where('camp_checked_in', true);
+        } elseif ($status === 'pending') {
+            $query->where('camp_checked_in', false);
+        }
 
         if ($search) {
             $query->where(function($q) use ($search) {
@@ -28,15 +34,15 @@ class RegistrationController extends Controller
         }
 
         $parishes = $query->orderBy('name')->get();
-        $deaneries = Parish::where('camp_checked_in', true)->select('deanery')->distinct()->whereNotNull('deanery')->pluck('deanery');
+        $deaneries = Parish::whereNotNull('deanery')->select('deanery')->distinct()->pluck('deanery');
 
         $stats = [
             'total_parishes' => Parish::count(),
             'checked_in' => Parish::where('camp_checked_in', true)->count(),
-            'total_contingent' => Parish::sum('camp_contingent_count'),
-            'checked_in_contingent' => Parish::where('camp_checked_in', true)->sum('camp_contingent_count'),
+            'total_contingent' => Parish::sum('camp_contingent_count') ?? 0,
+            'checked_in_contingent' => Parish::where('camp_checked_in', true)->sum('camp_contingent_count') ?? 0,
         ];
 
-        return view('registration.index', compact('parishes', 'deaneries', 'search', 'deanery', 'stats'));
+        return view('registration.index', compact('parishes', 'deaneries', 'search', 'deanery', 'status', 'stats'));
     }
 }

@@ -60,7 +60,7 @@
                     {{ $activeCategory->name }}
                 </h3>
                 <p style="color: var(--text-muted); font-size: 0.85rem;">
-                    Max Marks: <strong>{{ $activeCategory->max_raw_score }} pts</strong> &bull; Stage Allocation: <strong>{{ $activeCategory->allocated_minutes }} mins</strong>
+                    Max Marks: <strong>{{ $activeCategory->max_raw_score }} pts</strong> &bull; Stage Allocation: <strong>{{ $activeCategory->allocated_minutes > 0 ? $activeCategory->allocated_minutes . ' mins' : 'Quiz' }}</strong>
                 </p>
             </div>
             <div style="text-align: right;">
@@ -87,7 +87,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($parishStatusList as $item)
+                    @forelse($parishStatusList as $item)
                         <tr>
                             <td>
                                 <strong style="color: #f59e0b; font-family: var(--font-display); font-size: 1rem;">{{ $item['parish']->code }}</strong>
@@ -126,10 +126,28 @@
                                 </a>
                             </td>
                         </tr>
-                    @endforeach
+                    @empty
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 3.5rem 1rem; color: var(--text-muted);">
+                                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⛪</div>
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.25rem;">No Parishes Found</div>
+                                <p style="font-size: 0.9rem; max-width: 500px; margin: 0 auto; color: var(--text-muted);">
+                                    No parishes are registered or scheduled for this category yet.
+                                </p>
+                            </td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
+    </div>
+@else
+    <div class="glass-card" style="text-align: center; padding: 4rem 1rem;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⚖️</div>
+        <div style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">No Competition Categories Configured</div>
+        <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto;">
+            Please create competition categories and judging criteria in the Admin panel to begin adjudication.
+        </p>
     </div>
 @endif
 @endsection

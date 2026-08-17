@@ -55,10 +55,5 @@ class DatabaseSeeder extends Seeder
                 'password' => bcrypt('password'),
             ]
         );
-
-        // 2. Seed All CAM Festival Parishes, Categories & Schedule
-        $this->call([
-            CamFestivalSeeder::class,
-        ]);
     }
 }

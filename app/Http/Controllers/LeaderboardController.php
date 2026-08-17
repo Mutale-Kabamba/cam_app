@@ -11,7 +11,7 @@ class LeaderboardController extends Controller
 {
     public function index(Request $request)
     {
-        $categories = Category::all();
+        $categories = Category::orderBy('name')->get();
         $selectedCategory = $request->query('category_id');
 
         $parishes = Parish::with(['consolidatedResults.category'])->get();
@@ -41,7 +41,7 @@ class LeaderboardController extends Controller
 
     public function bigScreen(Request $request)
     {
-        $categories = Category::all();
+        $categories = Category::orderBy('name')->get();
         $selectedCategory = $request->query('category_id');
         $activeCategory = null;
         $categoryResults = null;

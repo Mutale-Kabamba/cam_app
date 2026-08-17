@@ -33,39 +33,35 @@ class ParishResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Parish Identity')
                     ->schema([
-                        Forms\Components\Select::make('name')
+                        Forms\Components\TextInput::make('name')
                             ->label('Parish Name')
-                            ->options([
-                                'Livingstone Deanery' => [
-                                    "St. Theresa's Cathedral" => "St. Theresa's Cathedral (Livingstone)",
-                                    "Christ the King Parish" => "Christ the King Parish (Maramba)",
-                                    "Kazungula Parish" => "Kazungula Parish (Kazungula)",
-                                    "Maria Regina Parish" => "Maria Regina Parish",
-                                    "Our Lady of Angels Parish" => "Our Lady of Angels Parish",
-                                    "St. Francis' Parish" => "St. Francis' Parish",
-                                    "St. Peter's Parish" => "St. Peter's Parish",
-                                    "St. Thomas the Apostle Parish" => "St. Thomas the Apostle Parish",
-                                ],
-                                'Sesheke Deanery' => [
-                                    "St. Kizito's Sesheke Parish" => "St. Kizito's Sesheke Parish",
-                                    "St. Fidelis' Sichili Parish" => "St. Fidelis' Sichili Parish",
-                                    "St. Mary's Njoko Parish" => "St. Mary's Njoko Parish",
-                                    "St. Arnold Janssen's Mwandi Parish" => "St. Arnold Janssen's Mwandi Parish",
-                                    "Nawinda Parish" => "Nawinda Parish",
-                                ],
-                                'Sioma Deanery' => [
-                                    "Lusu Parish" => "Lusu Parish",
-                                    "Sioma Parish" => "Sioma Parish",
-                                    "Shangombo Parish" => "Shangombo Parish",
-                                ],
-                            ])
-                            ->searchable()
                             ->required()
-                            ->live()
-                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                            ->maxLength(255)
+                            ->datalist([
+                                "St. Theresa's Cathedral",
+                                "Christ the King Parish",
+                                "Holy Childhood Parish",
+                                "Kazungula Parish",
+                                "Maria Regina Parish",
+                                "Our Lady of Angels Parish",
+                                "St. Francis' Parish",
+                                "St. Peter's Parish",
+                                "St. Thomas the Apostle Parish",
+                                "St. Kizito's Sesheke Parish",
+                                "St. Fidelis' Sichili Parish",
+                                "St. Mary's Njoko Parish",
+                                "St. Arnold Janssen's Mwandi Parish",
+                                "Nawinda Parish",
+                                "Lusu Parish",
+                                "Sioma Parish",
+                                "Shangombo Parish",
+                            ])
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                                 $parishMap = [
                                     "St. Theresa's Cathedral" => ['code' => 'STC', 'deanery' => 'Livingstone Deanery'],
                                     "Christ the King Parish" => ['code' => 'CTK', 'deanery' => 'Livingstone Deanery'],
+                                    "Holy Childhood Parish" => ['code' => 'HCP', 'deanery' => 'Livingstone Deanery'],
                                     "Kazungula Parish" => ['code' => 'KZP', 'deanery' => 'Livingstone Deanery'],
                                     "Maria Regina Parish" => ['code' => 'MRP', 'deanery' => 'Livingstone Deanery'],
                                     "Our Lady of Angels Parish" => ['code' => 'OLA', 'deanery' => 'Livingstone Deanery'],
@@ -82,20 +78,27 @@ class ParishResource extends Resource
                                     "Shangombo Parish" => ['code' => 'SGP', 'deanery' => 'Sioma Deanery'],
                                 ];
                                 if ($state && isset($parishMap[$state])) {
-                                    $set('code', $parishMap[$state]['code']);
-                                    $set('deanery', $parishMap[$state]['deanery']);
+                                    if (empty($get('code'))) {
+                                        $set('code', $parishMap[$state]['code']);
+                                    }
+                                    if (empty($get('deanery'))) {
+                                        $set('deanery', $parishMap[$state]['deanery']);
+                                    }
                                 }
                             }),
                         Forms\Components\TextInput::make('code')
                             ->label('Parish Code')
                             ->required()
-                            ->maxLength(10),
-                        Forms\Components\Select::make('deanery')
-                            ->options([
-                                'Livingstone Deanery' => 'Livingstone Deanery',
-                                'Sesheke Deanery' => 'Sesheke Deanery',
-                                'Sioma Deanery' => 'Sioma Deanery',
+                            ->maxLength(10)
+                            ->placeholder('e.g. STC'),
+                        Forms\Components\TextInput::make('deanery')
+                            ->label('Deanery')
+                            ->datalist([
+                                'Livingstone Deanery',
+                                'Sesheke Deanery',
+                                'Sioma Deanery',
                             ])
+                            ->placeholder('e.g. Livingstone Deanery')
                             ->required(),
                     ])->columns(3),
 

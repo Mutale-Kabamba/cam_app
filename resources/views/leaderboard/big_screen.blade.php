@@ -276,7 +276,7 @@
     <!-- Standings Cards Grid -->
     <div class="grid-container">
         @if($activeCategory && $categoryResults)
-            @foreach($categoryResults as $idx => $res)
+            @forelse($categoryResults as $idx => $res)
                 <div class="rank-card {{ $idx === 0 ? 'first' : ($idx === 1 ? 'second' : ($idx === 2 ? 'third' : '')) }}">
                     <div class="rank-num">
                         @if($idx === 0) 🥇 @elseif($idx === 1) 🥈 @elseif($idx === 2) 🥉 @else #{{ $idx + 1 }} @endif
@@ -290,9 +290,13 @@
                         <div class="points-label">Score / {{ $activeCategory->max_raw_score }}</div>
                     </div>
                 </div>
-            @endforeach
+            @empty
+                <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: #94a3b8; font-size: 1.25rem;">
+                    ⏳ Official scores for {{ $activeCategory->name }} are pending adjudication.
+                </div>
+            @endforelse
         @else
-            @foreach($standings as $idx => $st)
+            @forelse($standings as $idx => $st)
                 <div class="rank-card {{ $idx === 0 ? 'first' : ($idx === 1 ? 'second' : ($idx === 2 ? 'third' : '')) }}">
                     <div class="rank-num">
                         @if($idx === 0) 🥇 @elseif($idx === 1) 🥈 @elseif($idx === 2) 🥉 @else #{{ $idx + 1 }} @endif
@@ -306,7 +310,11 @@
                         <div class="points-label">Championship Pts</div>
                     </div>
                 </div>
-            @endforeach
+            @empty
+                <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: #94a3b8; font-size: 1.25rem;">
+                    🏆 No parish championship standings recorded yet.
+                </div>
+            @endforelse
         @endif
     </div>
 </body>
