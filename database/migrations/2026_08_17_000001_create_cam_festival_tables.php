@@ -8,7 +8,10 @@ return new class extends Migration {
         Schema::create('parishes', function (Blueprint $t) {
             $t->id(); $t->string('name')->unique(); $t->string('code')->unique();
             $t->string('deanery')->nullable(); $t->string('patron_matron_name')->nullable();
-            $t->string('patron_contact')->nullable(); $t->integer('camp_contingent_count')->default(25);
+            $t->string('patron_contact')->nullable();
+            $t->integer('male_count')->default(0);
+            $t->integer('female_count')->default(0);
+            $t->integer('camp_contingent_count')->default(0);
             $t->boolean('camp_checked_in')->default(false);
             $t->timestamps();
         });

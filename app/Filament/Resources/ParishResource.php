@@ -33,34 +33,52 @@ class ParishResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Parish Identity')
                     ->schema([
-                        Forms\Components\TextInput::make('name')
+                        Forms\Components\Select::make('name')
                             ->label('Parish Name')
+                            ->options(function (?Parish $record) {
+                                $defaults = [
+                                    "St. Theresa's Cathedral" => "St. Theresa's Cathedral",
+                                    "Christ the King Parish" => "Christ the King Parish",
+                                    "Holy Childhood Parish" => "Holy Childhood Parish",
+                                    "Kazungula Parish" => "Kazungula Parish",
+                                    "Maria Regina Parish" => "Maria Regina Parish",
+                                    "Our Lady of Angels Parish" => "Our Lady of Angels Parish",
+                                    "St. Francis' Parish" => "St. Francis' Parish",
+                                    "St. Peter's Parish" => "St. Peter's Parish",
+                                    "St. Thomas the Apostle Parish" => "St. Thomas the Apostle Parish",
+                                    "St. Kizito's Sesheke Parish" => "St. Kizito's Sesheke Parish",
+                                    "St. Fidelis' Sichili Parish" => "St. Fidelis' Sichili Parish",
+                                    "St. Mary's Njoko Parish" => "St. Mary's Njoko Parish",
+                                    "St. Arnold Janssen's Mwandi Parish" => "St. Arnold Janssen's Mwandi Parish",
+                                    "Nawinda Parish" => "Nawinda Parish",
+                                    "Lusu Parish" => "Lusu Parish",
+                                    "Sioma Parish" => "Sioma Parish",
+                                    "Shangombo Parish" => "Shangombo Parish",
+                                ];
+
+                                $existing = Parish::pluck('name', 'name')->toArray();
+                                if ($record && $record->name) {
+                                    $existing[$record->name] = $record->name;
+                                }
+
+                                return array_merge($defaults, $existing);
+                            })
+                            ->searchable()
                             ->required()
-                            ->maxLength(255)
-                            ->datalist([
-                                "St. Theresa's Cathedral",
-                                "Christ the King Parish",
-                                "Holy Childhood Parish",
-                                "Kazungula Parish",
-                                "Maria Regina Parish",
-                                "Our Lady of Angels Parish",
-                                "St. Francis' Parish",
-                                "St. Peter's Parish",
-                                "St. Thomas the Apostle Parish",
-                                "St. Kizito's Sesheke Parish",
-                                "St. Fidelis' Sichili Parish",
-                                "St. Mary's Njoko Parish",
-                                "St. Arnold Janssen's Mwandi Parish",
-                                "Nawinda Parish",
-                                "Lusu Parish",
-                                "Sioma Parish",
-                                "Shangombo Parish",
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('name')
+                                    ->label('New Parish Name')
+                                    ->required()
+                                    ->placeholder('e.g. St. Joseph Parish'),
                             ])
-                            ->live(onBlur: true)
+                            ->createOptionUsing(function (array $data): string {
+                                return $data['name'];
+                            })
+                            ->live()
                             ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                                 $parishMap = [
                                     "St. Theresa's Cathedral" => ['code' => 'STC', 'deanery' => 'Livingstone Deanery'],
-                                    "Christ the King Parish" => ['code' => 'CTK', 'deanery' => 'Livingstone Deanery'],
+                                    "Christ the King Parish" => ['code' => 'CKP', 'deanery' => 'Livingstone Deanery'],
                                     "Holy Childhood Parish" => ['code' => 'HCP', 'deanery' => 'Livingstone Deanery'],
                                     "Kazungula Parish" => ['code' => 'KZP', 'deanery' => 'Livingstone Deanery'],
                                     "Maria Regina Parish" => ['code' => 'MRP', 'deanery' => 'Livingstone Deanery'],
@@ -68,7 +86,7 @@ class ParishResource extends Resource
                                     "St. Francis' Parish" => ['code' => 'SFP', 'deanery' => 'Livingstone Deanery'],
                                     "St. Peter's Parish" => ['code' => 'SPP', 'deanery' => 'Livingstone Deanery'],
                                     "St. Thomas the Apostle Parish" => ['code' => 'STP', 'deanery' => 'Livingstone Deanery'],
-                                    "St. Kizito's Sesheke Parish" => ['code' => 'SKS', 'deanery' => 'Sesheke Deanery'],
+                                    "St. Kizito's Sesheke Parish" => ['code' => 'SKP', 'deanery' => 'Sesheke Deanery'],
                                     "St. Fidelis' Sichili Parish" => ['code' => 'SFS', 'deanery' => 'Sesheke Deanery'],
                                     "St. Mary's Njoko Parish" => ['code' => 'SMN', 'deanery' => 'Sesheke Deanery'],
                                     "St. Arnold Janssen's Mwandi Parish" => ['code' => 'SAJ', 'deanery' => 'Sesheke Deanery'],
@@ -77,32 +95,83 @@ class ParishResource extends Resource
                                     "Sioma Parish" => ['code' => 'SMP', 'deanery' => 'Sioma Deanery'],
                                     "Shangombo Parish" => ['code' => 'SGP', 'deanery' => 'Sioma Deanery'],
                                 ];
+
                                 if ($state && isset($parishMap[$state])) {
-                                    if (empty($get('code'))) {
-                                        $set('code', $parishMap[$state]['code']);
+                                    $set('code', $parishMap[$state]['code']);
+                                    $set('deanery', $parishMap[$state]['deanery']);
+                                } elseif ($state && empty($get('code'))) {
+                                    // Generate a 3-letter uppercase code for custom parish
+                                    $words = preg_split('/\s+/', trim($state));
+                                    $code = '';
+                                    foreach ($words as $w) {
+                                        $code .= strtoupper(substr($w, 0, 1));
                                     }
-                                    if (empty($get('deanery'))) {
-                                        $set('deanery', $parishMap[$state]['deanery']);
-                                    }
+                                    $set('code', substr($code, 0, 4) ?: 'PAR');
                                 }
                             }),
+
                         Forms\Components\TextInput::make('code')
                             ->label('Parish Code')
                             ->required()
                             ->maxLength(10)
                             ->placeholder('e.g. STC'),
-                        Forms\Components\TextInput::make('deanery')
+
+                        Forms\Components\Select::make('deanery')
                             ->label('Deanery')
-                            ->datalist([
-                                'Livingstone Deanery',
-                                'Sesheke Deanery',
-                                'Sioma Deanery',
+                            ->options([
+                                'Livingstone Deanery' => 'Livingstone Deanery',
+                                'Sesheke Deanery' => 'Sesheke Deanery',
+                                'Sioma Deanery' => 'Sioma Deanery',
                             ])
-                            ->placeholder('e.g. Livingstone Deanery')
+                            ->searchable()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('deanery')
+                                    ->label('New Deanery Name')
+                                    ->required()
+                                    ->placeholder('e.g. Kazungula Deanery'),
+                            ])
+                            ->createOptionUsing(fn (array $data) => $data['deanery'])
                             ->required(),
                     ])->columns(3),
 
-                Forms\Components\Section::make('Contingent & Camp Check-In')
+                Forms\Components\Section::make('Contingent & Headcount by Gender')
+                    ->description('Record youth contingent numbers per gender. Total headcount is calculated automatically.')
+                    ->schema([
+                        Forms\Components\TextInput::make('male_count')
+                            ->label('Male Youths')
+                            ->numeric()
+                            ->minValue(0)
+                            ->default(0)
+                            ->required()
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
+                                $male = intval($get('male_count') ?? 0);
+                                $female = intval($get('female_count') ?? 0);
+                                $set('camp_contingent_count', $male + $female);
+                            }),
+
+                        Forms\Components\TextInput::make('female_count')
+                            ->label('Female Youths')
+                            ->numeric()
+                            ->minValue(0)
+                            ->default(0)
+                            ->required()
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
+                                $male = intval($get('male_count') ?? 0);
+                                $female = intval($get('female_count') ?? 0);
+                                $set('camp_contingent_count', $male + $female);
+                            }),
+
+                        Forms\Components\TextInput::make('camp_contingent_count')
+                            ->label('Total Contingent Headcount (Youths)')
+                            ->numeric()
+                            ->default(0)
+                            ->readOnly()
+                            ->helperText('⚡ Auto-calculated (Male + Female)'),
+                    ])->columns(3),
+
+                Forms\Components\Section::make('Patron / Matron & Campsite Check-In')
                     ->schema([
                         Forms\Components\TextInput::make('patron_matron_name')
                             ->label('Patron / Matron Name')
@@ -111,15 +180,10 @@ class ParishResource extends Resource
                             ->label('Contact Phone Number')
                             ->tel()
                             ->maxLength(50),
-                        Forms\Components\TextInput::make('camp_contingent_count')
-                            ->label('Contingent Headcount (Youths)')
-                            ->required()
-                            ->numeric()
-                            ->default(25),
                         Forms\Components\Toggle::make('camp_checked_in')
                             ->label('Campsite Checked-In')
                             ->default(false),
-                    ])->columns(2),
+                    ])->columns(3),
             ]);
     }
 
@@ -150,9 +214,11 @@ class ParishResource extends Resource
                     ->label('Contact')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('camp_contingent_count')
-                    ->label('Campers')
+                    ->label('Youths')
+                    ->description(fn (Parish $record): string => "♂ {$record->male_count} | ♀ {$record->female_count}")
                     ->sortable()
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->weight('bold'),
                 Tables\Columns\ToggleColumn::make('camp_checked_in')
                     ->label('Checked In')
                     ->sortable()

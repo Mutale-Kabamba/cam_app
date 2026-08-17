@@ -30,6 +30,9 @@
         <div class="stat-content">
             <h4>Total Contingent Size</h4>
             <div class="stat-val">{{ $stats['total_contingent'] }}</div>
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.2rem;">
+                ♂ {{ $stats['total_male'] ?? 0 }} Male &bull; ♀ {{ $stats['total_female'] ?? 0 }} Female
+            </div>
         </div>
     </div>
     <div class="stat-card">
@@ -37,6 +40,9 @@
         <div class="stat-content">
             <h4>Campers In Camp</h4>
             <div class="stat-val">{{ $stats['checked_in_contingent'] }}</div>
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.2rem;">
+                ♂ {{ $stats['checked_in_male'] ?? 0 }} Male &bull; ♀ {{ $stats['checked_in_female'] ?? 0 }} Female
+            </div>
         </div>
     </div>
 </div>
@@ -109,7 +115,12 @@
                             <span style="color: #38bdf8;">{{ $p->patron_contact ?? 'N/A' }}</span>
                         </td>
                         <td>
-                            <span style="font-weight: 700; color: #fff;">{{ $p->camp_contingent_count }}</span> youths
+                            <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">
+                                {{ $p->camp_contingent_count }} <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">youths</span>
+                            </div>
+                            <div style="font-size: 0.75rem; color: #94a3b8;">
+                                ♂ {{ $p->male_count }} &bull; ♀ {{ $p->female_count }}
+                            </div>
                         </td>
                         <td>
                             @if($p->camp_checked_in)

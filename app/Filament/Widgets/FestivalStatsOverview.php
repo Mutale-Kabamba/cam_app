@@ -23,16 +23,19 @@ class FestivalStatsOverview extends BaseWidget
         $checkedIn = Parish::where('camp_checked_in', true)->count();
         $totalCampers = Parish::sum('camp_contingent_count');
         $activeCampers = Parish::where('camp_checked_in', true)->sum('camp_contingent_count');
+        $totalMale = Parish::sum('male_count');
+        $totalFemale = Parish::sum('female_count');
 
         $totalSchedules = ScheduleItem::count();
         $completedSchedules = ScheduleItem::where('status', 'completed')->count();
         $onStageSchedules = ScheduleItem::where('status', 'in_progress')->count();
 
+        $totalCats = Category::count();
         $finalizedCats = ConsolidatedResult::where('is_finalized', true)->distinct('category_id')->count('category_id');
 
         return [
             Stat::make('Parishes Checked-In', "{$checkedIn} / {$totalParishes}")
-                ->description("{$activeCampers} of {$totalCampers} campers in camp")
+                ->description("{$activeCampers} of {$totalCampers} youths (♂ {$totalMale} | ♀ {$totalFemale})")
                 ->descriptionIcon('heroicon-m-building-library')
                 ->color('success'),
 
@@ -42,11 +45,11 @@ class FestivalStatsOverview extends BaseWidget
                 ->color('danger'),
 
             Stat::make('Adjudication Scorecards', AdjudicationScore::count())
-                ->description('Marks submitted by 3 Judges')
+                ->description('Marks submitted by Judges')
                 ->descriptionIcon('heroicon-m-scale')
                 ->color('warning'),
 
-            Stat::make('Finalized Categories', "{$finalizedCats} / 8")
+            Stat::make('Finalized Categories', "{$finalizedCats} / {$totalCats}")
                 ->description('Published to Live Leaderboard')
                 ->descriptionIcon('heroicon-m-trophy')
                 ->color('info'),

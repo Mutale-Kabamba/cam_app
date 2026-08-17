@@ -18,7 +18,7 @@ class JudgeAssignmentResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
-    protected static ?string $navigationLabel = 'Adjudicators & Assignments';
+    protected static ?string $navigationLabel = 'User Accounts (Admins & Judges)';
 
     protected static ?string $navigationGroup = 'Festival Operations';
 
@@ -31,20 +31,39 @@ class JudgeAssignmentResource extends Resource
         return auth()->user()?->isAdmin() ?? false;
     }
 
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            ->where('role', 'judge')
-            ->orWhereNotNull('judge_name');
-    }
-
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Adjudicator Official Identity & Seat Assignment')
-                    ->description('Assign or reassign this adjudicator to an official Festival Judging Seat.')
+                Forms\Components\Section::make('User Account Identity & Role Assignment')
+                    ->description('Create or edit user credentials. Admins can provision accounts for official Judges or other Administrators.')
                     ->schema([
+                        Forms\Components\Select::make('role')
+                            ->label('Account Role')
+                            ->options([
+                                'admin' => '🛡️ Administrator (Full System & Setup Access)',
+                                'judge' => '⚖️ Official Adjudicator (Judging Workstation)',
+                            ])
+                            ->default('judge')
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                if ($state === 'admin') {
+                                    $set('judge_name', null);
+                                }
+                            }),
+
+                        Forms\Components\Select::make('judge_name')
+                            ->label('Assigned Official Judge Seat')
+                            ->options([
+                                'Judge 1' => '⚖️ Judge 1 (Technical & Core Adjudicator)',
+                                'Judge 2' => '⚖️ Judge 2 (Artistic & Harmony Adjudicator)',
+                                'Judge 3' => '⚖️ Judge 3 (Presentation & Diction Adjudicator)',
+                            ])
+                            ->visible(fn (Forms\Get $get) => $get('role') === 'judge')
+                            ->required(fn (Forms\Get $get) => $get('role') === 'judge')
+                            ->helperText('Determines which score sheet and official evaluation record this judge signs.'),
+
                         Forms\Components\TextInput::make('name')
                             ->label('Full Name / Title')
                             ->placeholder('e.g. Sr. Maria Mutale / Mr. Kenneth Banda')
@@ -55,20 +74,8 @@ class JudgeAssignmentResource extends Resource
                             ->label('Login Email Address')
                             ->email()
                             ->required()
-                            ->maxLength(255),
-
-                        Forms\Components\Select::make('judge_name')
-                            ->label('Assigned Official Judge Seat')
-                            ->options([
-                                'Judge 1' => '⚖️ Judge 1 (Technical & Core Adjudicator)',
-                                'Judge 2' => '⚖️ Judge 2 (Artistic & Harmony Adjudicator)',
-                                'Judge 3' => '⚖️ Judge 3 (Presentation & Diction Adjudicator)',
-                            ])
-                            ->required()
-                            ->helperText('Determines which score sheet and official record this judge signs.'),
-
-                        Forms\Components\Hidden::make('role')
-                            ->default('judge'),
+                            ->maxLength(255)
+                            ->unique(ignoreRecord: true),
 
                         Forms\Components\TextInput::make('password')
                             ->label('Account Password')
@@ -84,21 +91,36 @@ class JudgeAssignmentResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('role')
+                    ->label('Role')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'admin' => 'warning',
+                        'judge' => 'info',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'admin' => '🛡️ Admin',
+                        'judge' => '⚖️ Judge',
+                        default => ucfirst($state),
+                    })
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('judge_name')
                     ->label('Assigned Seat')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn (?string $state): string => match ($state) {
                         'Judge 1' => 'warning',
                         'Judge 2' => 'info',
                         'Judge 3' => 'success',
                         default => 'gray',
                     })
-                    ->weight('bold')
+                    ->formatStateUsing(fn (?string $state) => $state ?? '—')
                     ->sortable()
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Adjudicator Name')
+                    ->label('User Name')
                     ->weight('bold')
                     ->searchable()
                     ->sortable(),
@@ -108,25 +130,23 @@ class JudgeAssignmentResource extends Resource
                     ->copyable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('scorecards_count')
-                    ->label('Evaluations Submitted')
-                    ->state(function (User $record): int {
-                        return AdjudicationScore::where('adjudicator_name', $record->getJudgeName())->count();
-                    })
-                    ->badge()
-                    ->color('primary')
-                    ->alignCenter(),
-
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Assigned On')
+                    ->label('Created On')
                     ->dateTime('M j, Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->defaultSort('judge_name')
+            ->defaultSort('role')
+            ->filters([
+                Tables\Filters\SelectFilter::make('role')
+                    ->options([
+                        'admin' => '🛡️ Administrators',
+                        'judge' => '⚖️ Judges',
+                    ]),
+            ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                    ->label('Reassign / Edit'),
+                    ->label('Edit / Reassign'),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([

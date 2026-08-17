@@ -214,11 +214,67 @@ class AuthAndJudgeSecurityTest extends TestCase
         ]);
     }
 
+    public function test_parish_headcount_auto_calculates_total_from_male_and_female_counts()
+    {
+        $parish = Parish::create([
+            'name' => 'Holy Cross Parish',
+            'code' => 'HCP',
+            'deanery' => 'Livingstone Deanery',
+            'male_count' => 18,
+            'female_count' => 14,
+            'camp_checked_in' => true,
+        ]);
+
+        $this->assertEquals(32, $parish->camp_contingent_count);
+
+        $response = $this->get('/registration');
+        $response->assertStatus(200);
+        $response->assertSee('Holy Cross Parish');
+        $response->assertSee('32');
+        $response->assertSee('18');
+        $response->assertSee('14');
+    }
+
+    public function test_admin_can_create_another_admin_or_judge_account()
+    {
+        $admin = User::where('email', 'admin@camfestival.org')->first();
+
+        // Create new Admin via Eloquent (or Filament)
+        $newAdmin = User::create([
+            'name' => 'Rev. Fr. Co-Admin',
+            'email' => 'coadmin@camfestival.org',
+            'role' => 'admin',
+            'password' => 'secret123',
+        ]);
+
+        $this->assertTrue($newAdmin->isAdmin());
+        $this->assertFalse($newAdmin->isJudge());
+
+        // Create new Judge
+        $newJudge = User::create([
+            'name' => 'Mr. Senior Adjudicator',
+            'email' => 'adjudicator@camfestival.org',
+            'role' => 'judge',
+            'judge_name' => 'Judge 2',
+            'password' => 'secret123',
+        ]);
+
+        $this->assertTrue($newJudge->isJudge());
+        $this->assertEquals('Judge 2', $newJudge->getJudgeName());
+
+        $response = $this->actingAs($admin)->get('/admin/judge-assignments');
+        $response->assertStatus(200);
+        $response->assertSee('coadmin@camfestival.org');
+        $response->assertSee('adjudicator@camfestival.org');
+    }
+
     public function test_logout_redirects_to_program()
     {
         $judge = User::where('email', 'judge1@camfestival.org')->first();
 
-        $response = $this->actingAs($judge)->post('/logout');
+        $response = $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class)
+            ->actingAs($judge)
+            ->post('/logout');
         $response->assertRedirect(route('program.index'));
         $this->assertGuest();
     }

@@ -40,7 +40,11 @@ class RegistrationController extends Controller
             'total_parishes' => Parish::count(),
             'checked_in' => Parish::where('camp_checked_in', true)->count(),
             'total_contingent' => Parish::sum('camp_contingent_count') ?? 0,
+            'total_male' => Parish::sum('male_count') ?? 0,
+            'total_female' => Parish::sum('female_count') ?? 0,
             'checked_in_contingent' => Parish::where('camp_checked_in', true)->sum('camp_contingent_count') ?? 0,
+            'checked_in_male' => Parish::where('camp_checked_in', true)->sum('male_count') ?? 0,
+            'checked_in_female' => Parish::where('camp_checked_in', true)->sum('female_count') ?? 0,
         ];
 
         return view('registration.index', compact('parishes', 'deaneries', 'search', 'deanery', 'status', 'stats'));
