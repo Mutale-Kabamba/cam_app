@@ -131,26 +131,24 @@
                 <select name="name" id="new_parish_name" required style="width: 100%;" onchange="autoFillParish(this.value)">
                     <option value="">-- Select Diocesan Parish --</option>
                     <optgroup label="1. Livingstone Deanery">
-                        <option value="St. Theresa's Cathedral" data-code="STC" data-deanery="Livingstone Deanery">St. Theresa’s Cathedral (Livingstone)</option>
-                        <option value="Christ the King Parish" data-code="CTK" data-deanery="Livingstone Deanery">Christ the King Parish (Maramba)</option>
-                        <option value="Kazungula Parish" data-code="KZP" data-deanery="Livingstone Deanery">Kazungula Parish (Kazungula)</option>
-                        <option value="Maria Regina Parish" data-code="MRP" data-deanery="Livingstone Deanery">Maria Regina Parish</option>
+                        <option value="St. Peter the Apostle Parish" data-code="SPA" data-deanery="Livingstone Deanery">St. Peter the Apostle Parish (Airport)</option>
                         <option value="Our Lady of Angels Parish" data-code="OLA" data-deanery="Livingstone Deanery">Our Lady of Angels Parish</option>
-                        <option value="St. Francis' Parish" data-code="SFP" data-deanery="Livingstone Deanery">St. Francis’ Parish</option>
-                        <option value="St. Peter's Parish" data-code="SPP" data-deanery="Livingstone Deanery">St. Peter’s Parish</option>
-                        <option value="St. Thomas the Apostle Parish" data-code="STP" data-deanery="Livingstone Deanery">St. Thomas the Apostle Parish</option>
+                        <option value="St. Francis of Assisi Parish" data-code="SFA" data-deanery="Livingstone Deanery">St. Francis of Assisi Parish</option>
+                        <option value="St. Theresa Cathedral Parish" data-code="STC" data-deanery="Livingstone Deanery">St. Theresa Cathedral Parish</option>
+                        <option value="St. Paul's Parish" data-code="SPP" data-deanery="Livingstone Deanery">St. Paul's Parish (Ngwenya)</option>
+                        <option value="St. Joseph the Worker Parish" data-code="SJW" data-deanery="Livingstone Deanery">St. Joseph the Worker Parish (Mukuni)</option>
+                        <option value="Christ the King Parish" data-code="CTK" data-deanery="Livingstone Deanery">Christ the King Parish</option>
+                        <option value="Maria Regina Parish" data-code="MRP" data-deanery="Livingstone Deanery">Maria Regina Parish</option>
+                        <option value="St. Stephen Parish" data-code="SSP" data-deanery="Livingstone Deanery">St. Stephen Parish</option>
                     </optgroup>
                     <optgroup label="2. Sesheke Deanery">
-                        <option value="St. Kizito's Sesheke Parish" data-code="SKS" data-deanery="Sesheke Deanery">St. Kizito’s Sesheke Parish</option>
-                        <option value="St. Fidelis' Sichili Parish" data-code="SFS" data-deanery="Sesheke Deanery">St. Fidelis’ Sichili Parish</option>
-                        <option value="St. Mary's Njoko Parish" data-code="SMN" data-deanery="Sesheke Deanery">St. Mary’s Njoko Parish</option>
-                        <option value="St. Arnold Janssen's Mwandi Parish" data-code="SAJ" data-deanery="Sesheke Deanery">St. Arnold Janssen’s Mwandi Parish</option>
-                        <option value="Nawinda Parish" data-code="NWP" data-deanery="Sesheke Deanery">Nawinda Parish</option>
+                        <option value="St. Fidelis Parish" data-code="SFD" data-deanery="Sesheke Deanery">St. Fidelis Parish (Sichili)</option>
+                        <option value="St. Kizito Parish" data-code="SKP" data-deanery="Sesheke Deanery">St. Kizito Parish</option>
+                        <option value="St. Paul Parish" data-code="SPN" data-deanery="Sesheke Deanery">St. Paul Parish (Nawinda)</option>
                     </optgroup>
                     <optgroup label="3. Sioma Deanery">
-                        <option value="Lusu Parish" data-code="LSP" data-deanery="Sioma Deanery">Lusu Parish</option>
-                        <option value="Sioma Parish" data-code="SMP" data-deanery="Sioma Deanery">Sioma Parish</option>
-                        <option value="Shangombo Parish" data-code="SGP" data-deanery="Sioma Deanery">Shangombo Parish</option>
+                        <option value="St. Joseph Parish" data-code="SJP" data-deanery="Sioma Deanery">St. Joseph Parish (Lusu)</option>
+                        <option value="St. Anthony Parish" data-code="SAP" data-deanery="Sioma Deanery">St. Anthony Parish</option>
                     </optgroup>
                 </select>
             </div>

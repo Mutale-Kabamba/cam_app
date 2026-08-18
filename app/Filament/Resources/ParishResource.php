@@ -34,35 +34,38 @@ class ParishResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Parish Identity')
                     ->schema([
+                        // On EDIT — parish name is fixed, just show it as plain text
+                        Forms\Components\TextInput::make('name')
+                            ->label('Parish Name')
+                            ->required()
+                            ->maxLength(255)
+                            ->placeholder('e.g. St. Joseph Parish')
+                            ->hiddenOn('create'),
+
+                        // On CREATE — Select with auto-fill of code & deanery
                         Forms\Components\Select::make('name')
                             ->label('Parish Name')
-                            ->options(function (?Parish $record) {
-                                $defaults = [
-                                    "St. Theresa's Cathedral" => "St. Theresa's Cathedral",
-                                    "Christ the King Parish" => "Christ the King Parish",
-                                    "Holy Childhood Parish" => "Holy Childhood Parish",
-                                    "Kazungula Parish" => "Kazungula Parish",
-                                    "Maria Regina Parish" => "Maria Regina Parish",
-                                    "Our Lady of Angels Parish" => "Our Lady of Angels Parish",
-                                    "St. Francis' Parish" => "St. Francis' Parish",
-                                    "St. Peter's Parish" => "St. Peter's Parish",
-                                    "St. Thomas the Apostle Parish" => "St. Thomas the Apostle Parish",
-                                    "St. Kizito's Sesheke Parish" => "St. Kizito's Sesheke Parish",
-                                    "St. Fidelis' Sichili Parish" => "St. Fidelis' Sichili Parish",
-                                    "St. Mary's Njoko Parish" => "St. Mary's Njoko Parish",
-                                    "St. Arnold Janssen's Mwandi Parish" => "St. Arnold Janssen's Mwandi Parish",
-                                    "Nawinda Parish" => "Nawinda Parish",
-                                    "Lusu Parish" => "Lusu Parish",
-                                    "Sioma Parish" => "Sioma Parish",
-                                    "Shangombo Parish" => "Shangombo Parish",
+                            ->options(function () {
+                                // Official 14 CAM Festival parishes
+                                return [
+                                    // Livingstone Deanery
+                                    'St. Peter the Apostle Parish'  => '⛪ St. Peter the Apostle Parish (Airport)',
+                                    'Our Lady of Angels Parish'      => '⛪ Our Lady of Angels Parish',
+                                    'St. Francis of Assisi Parish'   => '⛪ St. Francis of Assisi Parish',
+                                    'St. Theresa Cathedral Parish'   => '⛪ St. Theresa Cathedral Parish',
+                                    "St. Paul's Parish"              => "⛪ St. Paul's Parish (Ngwenya)",
+                                    'St. Joseph the Worker Parish'   => '⛪ St. Joseph the Worker Parish (Mukuni)',
+                                    'Christ the King Parish'         => '⛪ Christ the King Parish',
+                                    'Maria Regina Parish'            => '⛪ Maria Regina Parish',
+                                    'St. Stephen Parish'             => '⛪ St. Stephen Parish',
+                                    // Sesheke Deanery
+                                    'St. Fidelis Parish'             => '⛪ St. Fidelis Parish (Sichili)',
+                                    'St. Kizito Parish'              => '⛪ St. Kizito Parish',
+                                    'St. Paul Parish'                => '⛪ St. Paul Parish (Nawinda)',
+                                    // Sioma Deanery
+                                    'St. Joseph Parish'              => '⛪ St. Joseph Parish (Lusu)',
+                                    'St. Anthony Parish'             => '⛪ St. Anthony Parish',
                                 ];
-
-                                $existing = Parish::pluck('name', 'name')->toArray();
-                                if ($record && $record->name) {
-                                    $existing[$record->name] = $record->name;
-                                }
-
-                                return array_merge($defaults, $existing);
                             })
                             ->searchable()
                             ->required()
@@ -78,38 +81,40 @@ class ParishResource extends Resource
                             ->live()
                             ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                                 $parishMap = [
-                                    "St. Theresa's Cathedral" => ['code' => 'STC', 'deanery' => 'Livingstone Deanery'],
-                                    "Christ the King Parish" => ['code' => 'CKP', 'deanery' => 'Livingstone Deanery'],
-                                    "Holy Childhood Parish" => ['code' => 'HCP', 'deanery' => 'Livingstone Deanery'],
-                                    "Kazungula Parish" => ['code' => 'KZP', 'deanery' => 'Livingstone Deanery'],
-                                    "Maria Regina Parish" => ['code' => 'MRP', 'deanery' => 'Livingstone Deanery'],
-                                    "Our Lady of Angels Parish" => ['code' => 'OLA', 'deanery' => 'Livingstone Deanery'],
-                                    "St. Francis' Parish" => ['code' => 'SFP', 'deanery' => 'Livingstone Deanery'],
-                                    "St. Peter's Parish" => ['code' => 'SPP', 'deanery' => 'Livingstone Deanery'],
-                                    "St. Thomas the Apostle Parish" => ['code' => 'STP', 'deanery' => 'Livingstone Deanery'],
-                                    "St. Kizito's Sesheke Parish" => ['code' => 'SKP', 'deanery' => 'Sesheke Deanery'],
-                                    "St. Fidelis' Sichili Parish" => ['code' => 'SFS', 'deanery' => 'Sesheke Deanery'],
-                                    "St. Mary's Njoko Parish" => ['code' => 'SMN', 'deanery' => 'Sesheke Deanery'],
-                                    "St. Arnold Janssen's Mwandi Parish" => ['code' => 'SAJ', 'deanery' => 'Sesheke Deanery'],
-                                    "Nawinda Parish" => ['code' => 'NWP', 'deanery' => 'Sesheke Deanery'],
-                                    "Lusu Parish" => ['code' => 'LSP', 'deanery' => 'Sioma Deanery'],
-                                    "Sioma Parish" => ['code' => 'SMP', 'deanery' => 'Sioma Deanery'],
-                                    "Shangombo Parish" => ['code' => 'SGP', 'deanery' => 'Sioma Deanery'],
+                                    // Livingstone Deanery
+                                    'St. Peter the Apostle Parish'  => ['code' => 'SPA', 'deanery' => 'Livingstone Deanery'],
+                                    'Our Lady of Angels Parish'      => ['code' => 'OLA', 'deanery' => 'Livingstone Deanery'],
+                                    'St. Francis of Assisi Parish'   => ['code' => 'SFA', 'deanery' => 'Livingstone Deanery'],
+                                    'St. Theresa Cathedral Parish'   => ['code' => 'STC', 'deanery' => 'Livingstone Deanery'],
+                                    "St. Paul's Parish"              => ['code' => 'SPP', 'deanery' => 'Livingstone Deanery'],
+                                    'St. Joseph the Worker Parish'   => ['code' => 'SJW', 'deanery' => 'Livingstone Deanery'],
+                                    'Christ the King Parish'         => ['code' => 'CTK', 'deanery' => 'Livingstone Deanery'],
+                                    'Maria Regina Parish'            => ['code' => 'MRP', 'deanery' => 'Livingstone Deanery'],
+                                    'St. Stephen Parish'             => ['code' => 'SSP', 'deanery' => 'Livingstone Deanery'],
+                                    // Sesheke Deanery
+                                    'St. Fidelis Parish'             => ['code' => 'SFD', 'deanery' => 'Sesheke Deanery'],
+                                    'St. Kizito Parish'              => ['code' => 'SKP', 'deanery' => 'Sesheke Deanery'],
+                                    'St. Paul Parish'                => ['code' => 'SPN', 'deanery' => 'Sesheke Deanery'],
+                                    // Sioma Deanery
+                                    'St. Joseph Parish'              => ['code' => 'SJP', 'deanery' => 'Sioma Deanery'],
+                                    'St. Anthony Parish'             => ['code' => 'SAP', 'deanery' => 'Sioma Deanery'],
                                 ];
 
                                 if ($state && isset($parishMap[$state])) {
                                     $set('code', $parishMap[$state]['code']);
                                     $set('deanery', $parishMap[$state]['deanery']);
                                 } elseif ($state && empty($get('code'))) {
-                                    // Generate a 3-letter uppercase code for custom parish
+                                    // Generate a short code for custom parish names
                                     $words = preg_split('/\s+/', trim($state));
-                                    $code = '';
+                                    $code  = '';
                                     foreach ($words as $w) {
                                         $code .= strtoupper(substr($w, 0, 1));
                                     }
                                     $set('code', substr($code, 0, 4) ?: 'PAR');
                                 }
-                            }),
+                            })
+                            ->hiddenOn('edit'),
+
 
                         Forms\Components\TextInput::make('code')
                             ->label('Parish Code')
