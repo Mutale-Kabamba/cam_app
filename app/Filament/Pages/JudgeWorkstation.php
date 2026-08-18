@@ -46,6 +46,36 @@ class JudgeWorkstation extends Page
     public ?string $comments = '';
     public bool $isDisqualified = false;
 
+    // Choir 4 Prescribed Songs State
+    public array $songTitles = [
+        'social_song' => '',
+        'kyrie' => '',
+        'gloria' => '',
+        'thanksgiving' => '',
+    ];
+
+    public array $songsPresented = [
+        'social_song' => true,
+        'kyrie' => true,
+        'gloria' => true,
+        'thanksgiving' => true,
+    ];
+
+    // Traditional Dance 3 Dances & Compliance State
+    public array $traditionalDances = [
+        1 => ['dance' => '', 'tribe' => '', 'province' => ''],
+        2 => ['dance' => '', 'tribe' => '', 'province' => ''],
+        3 => ['dance' => '', 'tribe' => '', 'province' => ''],
+    ];
+
+    public int $missingDancesCount = 0; // -10 per missing dance
+    public int $repeatedProvincesCount = 0; // -5 for each repeated province
+    public bool $failedIdentifyDances = false; // -5 marks
+    public bool $usedMasqueradeVinyau = false; // Disqualification!
+
+    // Universal Time Penalty Deduction
+    public int $timePenaltyDeduction = 0; // 0, 2, 5, 10, 15 marks
+
     public function mount(): void
     {
         $user = auth()->user();
@@ -66,6 +96,129 @@ class JudgeWorkstation extends Page
         if ($this->isAdmin && in_array($judgeName, ['Judge 1', 'Judge 2', 'Judge 3'])) {
             $this->activeJudge = $judgeName;
         }
+    }
+
+    public function isChoirCategory(): bool
+    {
+        $category = Category::find($this->selectedCategoryId);
+        if (!$category) {
+            return false;
+        }
+        return str_contains(strtolower($category->slug ?? ''), 'choir')
+            || str_contains(strtolower($category->name ?? ''), 'choir');
+    }
+
+    public function isSelfComposedCategory(): bool
+    {
+        $category = Category::find($this->selectedCategoryId);
+        if (!$category) {
+            return false;
+        }
+        return str_contains(strtolower($category->slug ?? ''), 'self-composed')
+            || str_contains(strtolower($category->name ?? ''), 'self-composed')
+            || str_contains(strtolower($category->slug ?? ''), 'self composed')
+            || str_contains(strtolower($category->name ?? ''), 'self composed');
+    }
+
+    public function isPoetryCategory(): bool
+    {
+        $category = Category::find($this->selectedCategoryId);
+        if (!$category) {
+            return false;
+        }
+        return str_contains(strtolower($category->slug ?? ''), 'poetry')
+            || str_contains(strtolower($category->name ?? ''), 'poetry');
+    }
+
+    public function isTraditionalDanceCategory(): bool
+    {
+        $category = Category::find($this->selectedCategoryId);
+        if (!$category) {
+            return false;
+        }
+        return str_contains(strtolower($category->slug ?? ''), 'traditional-dance')
+            || str_contains(strtolower($category->name ?? ''), 'traditional-dance')
+            || str_contains(strtolower($category->slug ?? ''), 'traditional dance')
+            || str_contains(strtolower($category->name ?? ''), 'traditional dance');
+    }
+
+    public function isDramaCategory(): bool
+    {
+        $category = Category::find($this->selectedCategoryId);
+        if (!$category) {
+            return false;
+        }
+        return str_contains(strtolower($category->slug ?? ''), 'drama')
+            || str_contains(strtolower($category->name ?? ''), 'drama');
+    }
+
+    public function getOmittedSongsCount(): int
+    {
+        if (!$this->isChoirCategory()) {
+            return 0;
+        }
+        $count = 0;
+        foreach (['social_song', 'kyrie', 'gloria', 'thanksgiving'] as $sKey) {
+            if (empty($this->songsPresented[$sKey])) {
+                $count++;
+            }
+        }
+        return $count;
+    }
+
+    public function getOmissionPenalty(): float
+    {
+        return $this->getOmittedSongsCount() * 25.0;
+    }
+
+    public function getTraditionalDanceDeductions(): float
+    {
+        if (!$this->isTraditionalDanceCategory()) {
+            return 0;
+        }
+        $deductions = 0;
+        $deductions += intval($this->missingDancesCount) * 10.0;
+        $deductions += intval($this->repeatedProvincesCount) * 5.0;
+        if ($this->failedIdentifyDances) {
+            $deductions += 5.0;
+        }
+        return floatval($deductions);
+    }
+
+    public function calculateRubricSubtotal(): float
+    {
+        $total = 0;
+        foreach ($this->criteriaScores as $score) {
+            if (is_numeric($score)) {
+                $total += floatval($score);
+            }
+        }
+        return round($total, 2);
+    }
+
+    public function calculateTotal(): float
+    {
+        $rubric = $this->calculateRubricSubtotal();
+        if ($this->isChoirCategory()) {
+            $omittedCount = $this->getOmittedSongsCount();
+            $maxAllowed = max(0, 100 - ($omittedCount * 25));
+            $penalty = $this->getOmissionPenalty() + floatval($this->timePenaltyDeduction);
+            return round(max(0, min($maxAllowed, $rubric - $penalty)), 2);
+        }
+
+        if ($this->isTraditionalDanceCategory()) {
+            if ($this->usedMasqueradeVinyau || $this->isDisqualified) {
+                return 0.0;
+            }
+            $deductions = $this->getTraditionalDanceDeductions() + floatval($this->timePenaltyDeduction);
+            return round(max(0, $rubric - $deductions), 2);
+        }
+
+        if ($this->timePenaltyDeduction > 0) {
+            return round(max(0, $rubric - floatval($this->timePenaltyDeduction)), 2);
+        }
+
+        return round($rubric, 2);
     }
 
     public function openScoreModal(int $parishId): void
@@ -98,6 +251,58 @@ class JudgeWorkstation extends Page
         $this->comments = $existing?->comments ?? '';
         $this->isDisqualified = (bool) ($existing?->is_disqualified ?? false);
 
+        // Load 4 Prescribed Songs
+        $songData = $existing?->song_titles_breakdown ?? [];
+        $this->songTitles = [
+            'social_song' => $songData['social_song']['title'] ?? ($songData['social_song'] ?? ''),
+            'kyrie' => $songData['kyrie']['title'] ?? ($songData['kyrie'] ?? ''),
+            'gloria' => $songData['gloria']['title'] ?? ($songData['gloria'] ?? ''),
+            'thanksgiving' => $songData['thanksgiving']['title'] ?? ($songData['thanksgiving'] ?? ''),
+        ];
+        $this->songsPresented = [
+            'social_song' => isset($songData['social_song']['presented']) ? (bool)$songData['social_song']['presented'] : true,
+            'kyrie' => isset($songData['kyrie']['presented']) ? (bool)$songData['kyrie']['presented'] : true,
+            'gloria' => isset($songData['gloria']['presented']) ? (bool)$songData['gloria']['presented'] : true,
+            'thanksgiving' => isset($songData['thanksgiving']['presented']) ? (bool)$songData['thanksgiving']['presented'] : true,
+        ];
+
+        // Load Traditional Dance 3 Dances & Compliance
+        if (isset($songData['traditional_dances'])) {
+            $this->traditionalDances = [
+                1 => [
+                    'dance' => $songData['traditional_dances'][1]['dance'] ?? '',
+                    'tribe' => $songData['traditional_dances'][1]['tribe'] ?? '',
+                    'province' => $songData['traditional_dances'][1]['province'] ?? '',
+                ],
+                2 => [
+                    'dance' => $songData['traditional_dances'][2]['dance'] ?? '',
+                    'tribe' => $songData['traditional_dances'][2]['tribe'] ?? '',
+                    'province' => $songData['traditional_dances'][2]['province'] ?? '',
+                ],
+                3 => [
+                    'dance' => $songData['traditional_dances'][3]['dance'] ?? '',
+                    'tribe' => $songData['traditional_dances'][3]['tribe'] ?? '',
+                    'province' => $songData['traditional_dances'][3]['province'] ?? '',
+                ],
+            ];
+            $this->missingDancesCount = intval($songData['missing_dances_count'] ?? 0);
+            $this->repeatedProvincesCount = intval($songData['repeated_provinces_count'] ?? 0);
+            $this->failedIdentifyDances = (bool)($songData['failed_identify_dances'] ?? false);
+            $this->usedMasqueradeVinyau = (bool)($songData['used_masquerade_vinyau'] ?? false);
+        } else {
+            $this->traditionalDances = [
+                1 => ['dance' => '', 'tribe' => '', 'province' => ''],
+                2 => ['dance' => '', 'tribe' => '', 'province' => ''],
+                3 => ['dance' => '', 'tribe' => '', 'province' => ''],
+            ];
+            $this->missingDancesCount = 0;
+            $this->repeatedProvincesCount = 0;
+            $this->failedIdentifyDances = false;
+            $this->usedMasqueradeVinyau = false;
+        }
+
+        $this->timePenaltyDeduction = intval($songData['time_penalty_deduction'] ?? 0);
+
         $this->showScoreModal = true;
     }
 
@@ -105,17 +310,6 @@ class JudgeWorkstation extends Page
     {
         $this->showScoreModal = false;
         $this->scoringParishId = null;
-    }
-
-    public function calculateTotal(): float
-    {
-        $total = 0;
-        foreach ($this->criteriaScores as $score) {
-            if (is_numeric($score)) {
-                $total += floatval($score);
-            }
-        }
-        return round($total, 2);
     }
 
     public function saveScore(): void
@@ -156,13 +350,76 @@ class JudgeWorkstation extends Page
             }
         }
 
-        $maxPossible = $category->max_raw_score > 0 ? $category->max_raw_score : 100;
-        $normalized = round(($totalRaw / $maxPossible) * 100, 2);
+        $isChoir = $this->isChoirCategory();
+        $isTraditionalDance = $this->isTraditionalDanceCategory();
+        $isDrama = $this->isDramaCategory();
+
+        $omittedCount = $isChoir ? $this->getOmittedSongsCount() : 0;
+        $omissionPenalty = $omittedCount * 25.0;
+
+        $danceDeductions = $isTraditionalDance ? $this->getTraditionalDanceDeductions() : 0;
+
+        if ($this->usedMasqueradeVinyau) {
+            $this->isDisqualified = true;
+        }
+
+        if ($isChoir) {
+            $maxPossible = max(0, 100 - $omissionPenalty);
+            $finalRawScore = max(0, min($maxPossible, $totalRaw - $omissionPenalty - floatval($this->timePenaltyDeduction)));
+        } elseif ($isTraditionalDance) {
+            $finalRawScore = max(0, $totalRaw - $danceDeductions - floatval($this->timePenaltyDeduction));
+            $maxPossible = 100;
+        } elseif ($isDrama) {
+            $finalRawScore = max(0, $totalRaw - floatval($this->timePenaltyDeduction));
+            $maxPossible = $category->max_raw_score > 0 ? $category->max_raw_score : 120;
+        } else {
+            $maxPossible = $category->max_raw_score > 0 ? $category->max_raw_score : 100;
+            $finalRawScore = max(0, $totalRaw - floatval($this->timePenaltyDeduction));
+        }
+
+        $maxDenominator = $category->max_raw_score > 0 ? $category->max_raw_score : ($isDrama ? 120 : 100);
+        $normalized = round(($finalRawScore / $maxDenominator) * 100, 2);
 
         if ($this->isDisqualified) {
-            $totalRaw = 0;
+            $finalRawScore = 0;
             $normalized = 0;
         }
+
+        $songBreakdown = null;
+        if ($isChoir) {
+            $songBreakdown = [
+                'social_song' => ['title' => $this->songTitles['social_song'] ?? '', 'presented' => (bool)($this->songsPresented['social_song'] ?? true)],
+                'kyrie' => ['title' => $this->songTitles['kyrie'] ?? '', 'presented' => (bool)($this->songsPresented['kyrie'] ?? true)],
+                'gloria' => ['title' => $this->songTitles['gloria'] ?? '', 'presented' => (bool)($this->songsPresented['gloria'] ?? true)],
+                'thanksgiving' => ['title' => $this->songTitles['thanksgiving'] ?? '', 'presented' => (bool)($this->songsPresented['thanksgiving'] ?? true)],
+                'omitted_songs_count' => $omittedCount,
+                'omission_penalty' => $omissionPenalty,
+                'time_penalty_deduction' => $this->timePenaltyDeduction,
+            ];
+        } elseif ($isTraditionalDance) {
+            $songBreakdown = [
+                'traditional_dances' => $this->traditionalDances,
+                'missing_dances_count' => $this->missingDancesCount,
+                'repeated_provinces_count' => $this->repeatedProvincesCount,
+                'failed_identify_dances' => $this->failedIdentifyDances,
+                'used_masquerade_vinyau' => $this->usedMasqueradeVinyau,
+                'compliance_deductions_total' => $danceDeductions,
+                'time_penalty_deduction' => $this->timePenaltyDeduction,
+            ];
+        } elseif ($isDrama) {
+            $songBreakdown = [
+                'play_title' => $this->itemTitle,
+                'playwright' => $this->composerAuthor,
+                'director' => $this->directorProducer,
+                'language_used' => $this->languageUsed,
+                'participant_count' => $this->participantCount,
+                'time_penalty_deduction' => $this->timePenaltyDeduction,
+            ];
+        }
+
+        $resolvedTitle = !empty($this->itemTitle)
+            ? $this->itemTitle
+            : ($isChoir ? 'Choral Presentation (4 Prescribed Songs)' : ($isTraditionalDance ? 'Traditional Dance Presentation (3 Provinces)' : ($isDrama ? 'Dramatic Production' : '')));
 
         AdjudicationScore::updateOrCreate(
             [
@@ -176,9 +433,10 @@ class JudgeWorkstation extends Page
                 'composer_author' => $this->composerAuthor,
                 'language_used' => $this->languageUsed,
                 'participant_count' => $this->participantCount,
-                'item_title' => $this->itemTitle,
+                'item_title' => $resolvedTitle,
+                'song_titles_breakdown' => $songBreakdown,
                 'criteria_scores' => $cleanedScores,
-                'raw_total_score' => $totalRaw,
+                'raw_total_score' => $finalRawScore,
                 'normalized_score' => $normalized,
                 'comments' => $this->comments,
                 'is_disqualified' => $this->isDisqualified,
@@ -209,7 +467,7 @@ class JudgeWorkstation extends Page
 
         Notification::make()
             ->title('Score Submitted & Locked')
-            ->body("{$parish->name} evaluated by {$this->activeJudge}: {$totalRaw}/{$maxPossible} pts.")
+            ->body("{$parish->name} evaluated by {$this->activeJudge}: {$finalRawScore}/100 pts." . ($omittedCount > 0 ? " ({$omittedCount} song(s) omitted, -{$omissionPenalty} pts penalty)" : ''))
             ->success()
             ->send();
 

@@ -75,22 +75,35 @@ class AdjudicationScoreResource extends Resource
                                     return Parish::orderBy('name')->pluck('name', 'id');
                                 }
 
-                                // Get parishes specifically participating / scheduled for this category
+                                $allParishes = Parish::orderBy('name')->get();
                                 $scheduledParishIds = ScheduleItem::where('category_id', $categoryId)
                                     ->whereNotNull('parish_id')
                                     ->pluck('parish_id')
                                     ->toArray();
 
-                                if (!empty($scheduledParishIds)) {
-                                    return Parish::whereIn('id', $scheduledParishIds)->orderBy('name')->pluck('name', 'id');
+                                $hasAnyParticipationSet = $allParishes->contains(fn ($p) => !empty($p->participating_categories) && is_array($p->participating_categories));
+                                $hasAnyScheduleSet = !empty($scheduledParishIds);
+
+                                if ($hasAnyParticipationSet || $hasAnyScheduleSet) {
+                                    return $allParishes->filter(function (Parish $p) use ($categoryId, $scheduledParishIds) {
+                                        if (in_array($p->id, $scheduledParishIds)) {
+                                            return true;
+                                        }
+                                        if (!empty($p->participating_categories) && is_array($p->participating_categories)) {
+                                            return in_array($categoryId, $p->participating_categories)
+                                                || in_array((string)$categoryId, $p->participating_categories)
+                                                || in_array((int)$categoryId, $p->participating_categories);
+                                        }
+                                        return false;
+                                    })->pluck('name', 'id');
                                 }
 
-                                return Parish::orderBy('name')->pluck('name', 'id');
+                                return $allParishes->pluck('name', 'id');
                             })
                             ->live()
                             ->searchable()
                             ->required()
-                            ->helperText('Only parishes in the selected category appear here.'),
+                            ->helperText('Only parishes participating in the selected category appear here.'),
                     ])->columns(3),
 
                 // 2A. CHOIR MUSIC FORM (Specific Header & 4 Songs Breakdown)

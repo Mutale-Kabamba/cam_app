@@ -236,24 +236,18 @@ class ParishResource extends Resource
                     ->sortable()
                     ->alignCenter()
                     ->weight('bold'),
-                Tables\Columns\TextColumn::make('participating_categories')
+                Tables\Columns\TextColumn::make('participating_categories_count')
                     ->label('Events')
-                    ->formatStateUsing(function ($state, Parish $record) {
-                        if (empty($record->participating_categories)) {
-                            return 'All Events';
-                        }
-                        $count = count($record->participating_categories);
-                        return "{$count} Event" . ($count > 1 ? 's' : '');
-                    })
+                    ->state(fn (Parish $record): int => is_array($record->participating_categories) ? count($record->participating_categories) : 0)
                     ->badge()
                     ->color('warning')
+                    ->alignCenter()
                     ->tooltip(function (Parish $record) {
                         if (empty($record->participating_categories)) {
-                            return 'Participating in all categories';
+                            return 'No specific categories ticked';
                         }
                         return implode(', ', Category::whereIn('id', $record->participating_categories)->pluck('name')->toArray());
-                    })
-                    ->alignCenter(),
+                    }),
                 Tables\Columns\ToggleColumn::make('camp_checked_in')
                     ->label('Checked In')
                     ->sortable()

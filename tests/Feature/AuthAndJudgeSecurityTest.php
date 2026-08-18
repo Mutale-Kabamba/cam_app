@@ -313,6 +313,451 @@ class AuthAndJudgeSecurityTest extends TestCase
         ]);
     }
 
+    public function test_choir_judging_omission_penalty_deducts_25_marks_per_omitted_song()
+    {
+        $judge = User::where('email', 'judge1@camfestival.org')->first();
+
+        $category = Category::create([
+            'name' => 'Choir Music (Melody)',
+            'slug' => 'choir',
+            'type' => 'stage_performance',
+            'max_raw_score' => 100,
+        ]);
+
+        $parish = Parish::create([
+            'name' => 'St. Francis Choir',
+            'code' => 'SFC',
+            'deanery' => 'Livingstone Deanery',
+            'participating_categories' => [$category->id],
+        ]);
+
+        // Award full 80 marks on rubric, but omit 1 song (Gloria unticked) -> should deduct 25 marks (80 - 25 = 55)
+        \Livewire\Livewire::actingAs($judge)
+            ->test(\App\Filament\Pages\JudgeWorkstation::class)
+            ->call('selectCategory', $category->id)
+            ->call('openScoreModal', $parish->id)
+            ->set('conductorName', 'Sr. Mary Banda')
+            ->set('participantCount', 32)
+            ->set('songTitles.social_song', 'Youth Unity Hymn')
+            ->set('songTitles.kyrie', 'Kyrie Eleison XVI')
+            ->set('songTitles.gloria', '')
+            ->set('songTitles.thanksgiving', 'Great is Thy Faithfulness')
+            ->set('songsPresented.social_song', true)
+            ->set('songsPresented.kyrie', true)
+            ->set('songsPresented.gloria', false) // OMITTED!
+            ->set('songsPresented.thanksgiving', true)
+            ->set('criteriaScores.1', 5)
+            ->set('criteriaScores.2', 10)
+            ->set('criteriaScores.3', 10)
+            ->set('criteriaScores.4', 10)
+            ->set('criteriaScores.5', 10)
+            ->set('criteriaScores.6', 10)
+            ->set('criteriaScores.7', 5)
+            ->set('criteriaScores.8', 5)
+            ->set('criteriaScores.9', 10)
+            ->set('criteriaScores.10', 5)
+            ->call('saveScore')
+            ->assertHasNoErrors();
+
+        $score = \App\Models\AdjudicationScore::where('category_id', $category->id)
+            ->where('parish_id', $parish->id)
+            ->first();
+
+        $this->assertNotNull($score);
+        // 80 rubric score minus 25 omission penalty = 55
+        $this->assertEquals(55.00, $score->raw_total_score);
+        $this->assertEquals(1, $score->song_titles_breakdown['omitted_songs_count']);
+        $this->assertEquals(25.00, $score->song_titles_breakdown['omission_penalty']);
+    }
+
+    public function test_self_composed_song_judging_form_submits_all_metadata_and_criteria_scores()
+    {
+        $judge = User::where('email', 'judge1@camfestival.org')->first();
+
+        $category = Category::create([
+            'name' => 'Self-Composed Song',
+            'slug' => 'self-composed-song',
+            'type' => 'stage_performance',
+            'max_raw_score' => 100,
+            'allocated_minutes' => 10,
+            'judging_criteria' => [
+                ['no' => 1, 'criterion' => 'Entry and Exit', 'possible_score' => 5],
+                ['no' => 2, 'criterion' => 'Theme Relevance', 'possible_score' => 15],
+                ['no' => 3, 'criterion' => 'Original Composition', 'possible_score' => 20],
+                ['no' => 4, 'criterion' => 'Message Content', 'possible_score' => 15],
+                ['no' => 5, 'criterion' => 'Vocal Performance', 'possible_score' => 10],
+                ['no' => 6, 'criterion' => 'Harmony and Arrangement', 'possible_score' => 10],
+                ['no' => 7, 'criterion' => 'Diction and Pronunciation', 'possible_score' => 5],
+                ['no' => 8, 'criterion' => 'Attire and Cultural Expression', 'possible_score' => 5],
+                ['no' => 9, 'criterion' => 'Stage Presentation', 'possible_score' => 5],
+                ['no' => 10, 'criterion' => 'Overall Impression', 'possible_score' => 10],
+            ],
+        ]);
+
+        $parish = Parish::create([
+            'name' => 'St. Joseph Self-Composed Group',
+            'code' => 'SJG',
+            'deanery' => 'Livingstone Deanery',
+            'participating_categories' => [$category->id],
+        ]);
+
+        \Livewire\Livewire::actingAs($judge)
+            ->test(\App\Filament\Pages\JudgeWorkstation::class)
+            ->call('selectCategory', $category->id)
+            ->call('openScoreModal', $parish->id)
+            ->set('itemTitle', 'Tukopano mwa Pastoral Care')
+            ->set('composerAuthor', 'Fr. Dominic Mwanza')
+            ->set('directorProducer', 'Mrs. Agnes Phiri')
+            ->set('languageUsed', 'Lozi')
+            ->set('participantCount', 24)
+            ->set('criteriaScores.1', 4)
+            ->set('criteriaScores.2', 13)
+            ->set('criteriaScores.3', 18)
+            ->set('criteriaScores.4', 14)
+            ->set('criteriaScores.5', 9)
+            ->set('criteriaScores.6', 8)
+            ->set('criteriaScores.7', 4)
+            ->set('criteriaScores.8', 5)
+            ->set('criteriaScores.9', 4)
+            ->set('criteriaScores.10', 9)
+            ->call('saveScore')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('adjudication_scores', [
+            'category_id' => $category->id,
+            'parish_id' => $parish->id,
+            'adjudicator_name' => 'Judge 1',
+            'item_title' => 'Tukopano mwa Pastoral Care',
+            'composer_author' => 'Fr. Dominic Mwanza',
+            'director_producer' => 'Mrs. Agnes Phiri',
+            'language_used' => 'Lozi',
+            'participant_count' => 24,
+            'raw_total_score' => 88.00,
+        ]);
+    }
+
+    public function test_poetry_judging_form_submits_all_metadata_and_11_criteria_scores()
+    {
+        $judge = User::where('email', 'judge1@camfestival.org')->first();
+
+        $category = Category::create([
+            'name' => 'Poetry',
+            'slug' => 'poetry',
+            'type' => 'stage_performance',
+            'max_raw_score' => 100,
+            'allocated_minutes' => 15,
+            'judging_criteria' => [
+                ['no' => 1, 'criterion' => 'Movement (A. Performance)', 'possible_score' => 10],
+                ['no' => 2, 'criterion' => 'Teamwork (A. Performance)', 'possible_score' => 10],
+                ['no' => 3, 'criterion' => 'Individual Performance (A. Performance)', 'possible_score' => 10],
+                ['no' => 4, 'criterion' => 'Use of Props or Mime (B. Production)', 'possible_score' => 5],
+                ['no' => 5, 'criterion' => 'Understanding of Theme (B. Production)', 'possible_score' => 10],
+                ['no' => 6, 'criterion' => 'Suitability of Costume (B. Production)', 'possible_score' => 5],
+                ['no' => 7, 'criterion' => 'Voice Control (C. Voice)', 'possible_score' => 10],
+                ['no' => 8, 'criterion' => 'Articulation (C. Voice)', 'possible_score' => 10],
+                ['no' => 9, 'criterion' => 'Interpretation (C. Voice)', 'possible_score' => 10],
+                ['no' => 10, 'criterion' => 'Suitability (D. Choice of Poem)', 'possible_score' => 5],
+                ['no' => 11, 'criterion' => 'Overall Production (E. Overall Impression)', 'possible_score' => 15],
+            ],
+        ]);
+
+        $parish = Parish::create([
+            'name' => 'St. Monica Poetry Group',
+            'code' => 'SMP',
+            'deanery' => 'Livingstone Deanery',
+            'participating_categories' => [$category->id],
+        ]);
+
+        \Livewire\Livewire::actingAs($judge)
+            ->test(\App\Filament\Pages\JudgeWorkstation::class)
+            ->call('selectCategory', $category->id)
+            ->call('openScoreModal', $parish->id)
+            ->set('itemTitle', 'The Light on the Altar')
+            ->set('composerAuthor', 'Sr. Veronica Tembo')
+            ->set('directorProducer', 'Mr. Emmanuel Lungu')
+            ->set('languageUsed', 'English')
+            ->set('participantCount', 6)
+            ->set('criteriaScores.1', 9)
+            ->set('criteriaScores.2', 9)
+            ->set('criteriaScores.3', 8)
+            ->set('criteriaScores.4', 4)
+            ->set('criteriaScores.5', 9)
+            ->set('criteriaScores.6', 4)
+            ->set('criteriaScores.7', 8)
+            ->set('criteriaScores.8', 9)
+            ->set('criteriaScores.9', 8)
+            ->set('criteriaScores.10', 4)
+            ->set('criteriaScores.11', 13)
+            ->call('saveScore')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('adjudication_scores', [
+            'category_id' => $category->id,
+            'parish_id' => $parish->id,
+            'adjudicator_name' => 'Judge 1',
+            'item_title' => 'The Light on the Altar',
+            'composer_author' => 'Sr. Veronica Tembo',
+            'director_producer' => 'Mr. Emmanuel Lungu',
+            'language_used' => 'English',
+            'participant_count' => 6,
+            'raw_total_score' => 85.00,
+        ]);
+    }
+
+    public function test_traditional_dance_judging_form_submits_3_dances_and_criteria()
+    {
+        $judge = User::where('email', 'judge1@camfestival.org')->first();
+
+        $category = Category::create([
+            'name' => 'Traditional Dance',
+            'slug' => 'traditional-dance',
+            'type' => 'stage_performance',
+            'max_raw_score' => 100,
+            'allocated_minutes' => 20,
+            'judging_criteria' => [
+                ['no' => 1, 'criterion' => 'Entry', 'possible_score' => 5],
+                ['no' => 2, 'criterion' => 'Style / Stage Craft', 'possible_score' => 10],
+                ['no' => 3, 'criterion' => 'Costume and Make-up', 'possible_score' => 15],
+                ['no' => 4, 'criterion' => 'Choreography / Creativity', 'possible_score' => 25],
+                ['no' => 5, 'criterion' => 'Originality / Authenticity', 'possible_score' => 25],
+                ['no' => 6, 'criterion' => 'General Impression', 'possible_score' => 15],
+                ['no' => 7, 'criterion' => 'Exit', 'possible_score' => 5],
+            ],
+        ]);
+
+        $parish = Parish::create([
+            'name' => 'St. Charles Traditional Dance Troupe',
+            'code' => 'SCT',
+            'deanery' => 'Livingstone Deanery',
+            'participating_categories' => [$category->id],
+        ]);
+
+        \Livewire\Livewire::actingAs($judge)
+            ->test(\App\Filament\Pages\JudgeWorkstation::class)
+            ->call('selectCategory', $category->id)
+            ->call('openScoreModal', $parish->id)
+            ->set('directorProducer', 'Mr. Clement Mutale')
+            ->set('participantCount', 15)
+            ->set('traditionalDances.1.dance', 'Kayowe')
+            ->set('traditionalDances.1.tribe', 'Tonga')
+            ->set('traditionalDances.1.province', 'Southern')
+            ->set('traditionalDances.2.dance', 'Silimba')
+            ->set('traditionalDances.2.tribe', 'Lozi')
+            ->set('traditionalDances.2.province', 'Western')
+            ->set('traditionalDances.3.dance', 'Kalela')
+            ->set('traditionalDances.3.tribe', 'Bemba')
+            ->set('traditionalDances.3.province', 'Luapula')
+            ->set('criteriaScores.1', 5)
+            ->set('criteriaScores.2', 9)
+            ->set('criteriaScores.3', 14)
+            ->set('criteriaScores.4', 23)
+            ->set('criteriaScores.5', 24)
+            ->set('criteriaScores.6', 14)
+            ->set('criteriaScores.7', 5)
+            ->call('saveScore')
+            ->assertHasNoErrors();
+
+        $score = \App\Models\AdjudicationScore::where('category_id', $category->id)
+            ->where('parish_id', $parish->id)
+            ->first();
+
+        $this->assertNotNull($score);
+        $this->assertEquals(94.00, $score->raw_total_score);
+        $this->assertEquals('Kayowe', $score->song_titles_breakdown['traditional_dances'][1]['dance']);
+        $this->assertEquals('Southern', $score->song_titles_breakdown['traditional_dances'][1]['province']);
+    }
+
+    public function test_traditional_dance_compliance_deductions_applied()
+    {
+        $judge = User::where('email', 'judge1@camfestival.org')->first();
+
+        $category = Category::create([
+            'name' => 'Traditional Dance',
+            'slug' => 'traditional-dance-penalty-test',
+            'type' => 'stage_performance',
+            'max_raw_score' => 100,
+            'allocated_minutes' => 20,
+            'judging_criteria' => [
+                ['no' => 1, 'criterion' => 'Entry', 'possible_score' => 5],
+                ['no' => 2, 'criterion' => 'Style / Stage Craft', 'possible_score' => 10],
+                ['no' => 3, 'criterion' => 'Costume and Make-up', 'possible_score' => 15],
+                ['no' => 4, 'criterion' => 'Choreography / Creativity', 'possible_score' => 25],
+                ['no' => 5, 'criterion' => 'Originality / Authenticity', 'possible_score' => 25],
+                ['no' => 6, 'criterion' => 'General Impression', 'possible_score' => 15],
+                ['no' => 7, 'criterion' => 'Exit', 'possible_score' => 5],
+            ],
+        ]);
+
+        $parish = Parish::create([
+            'name' => 'St. Peter Dance Troupe',
+            'code' => 'SPD',
+            'deanery' => 'Livingstone Deanery',
+            'participating_categories' => [$category->id],
+        ]);
+
+        // Award 90 marks on rubric, but 1 missing dance (-10) + 1 repeated province (-5) = -15 deduction -> score should be 75
+        \Livewire\Livewire::actingAs($judge)
+            ->test(\App\Filament\Pages\JudgeWorkstation::class)
+            ->call('selectCategory', $category->id)
+            ->call('openScoreModal', $parish->id)
+            ->set('missingDancesCount', 1)
+            ->set('repeatedProvincesCount', 1)
+            ->set('criteriaScores.1', 5)
+            ->set('criteriaScores.2', 10)
+            ->set('criteriaScores.3', 15)
+            ->set('criteriaScores.4', 20)
+            ->set('criteriaScores.5', 20)
+            ->set('criteriaScores.6', 15)
+            ->set('criteriaScores.7', 5)
+            ->call('saveScore')
+            ->assertHasNoErrors();
+
+        $score = \App\Models\AdjudicationScore::where('category_id', $category->id)
+            ->where('parish_id', $parish->id)
+            ->first();
+
+        $this->assertNotNull($score);
+        // 90 rubric minus 15 deductions = 75
+        $this->assertEquals(75.00, $score->raw_total_score);
+        $this->assertEquals(15.00, $score->song_titles_breakdown['compliance_deductions_total']);
+    }
+
+    public function test_drama_judging_form_submits_metadata_and_13_criteria()
+    {
+        $judge = User::where('email', 'judge1@camfestival.org')->first();
+
+        $category = Category::create([
+            'name' => 'Drama',
+            'slug' => 'drama',
+            'type' => 'stage_performance',
+            'max_raw_score' => 120,
+            'allocated_minutes' => 45,
+            'judging_criteria' => [
+                ['no' => 1, 'criterion' => 'Movement', 'possible_score' => 10],
+                ['no' => 2, 'criterion' => 'Teamwork', 'possible_score' => 10],
+                ['no' => 3, 'criterion' => 'Individual Acting', 'possible_score' => 10],
+                ['no' => 4, 'criterion' => 'Use of Props', 'possible_score' => 5],
+                ['no' => 5, 'criterion' => 'Understanding of Theme', 'possible_score' => 10],
+                ['no' => 6, 'criterion' => 'Suitability of Set and Costume', 'possible_score' => 10],
+                ['no' => 7, 'criterion' => 'Audibility and Projection', 'possible_score' => 10],
+                ['no' => 8, 'criterion' => 'Articulation', 'possible_score' => 10],
+                ['no' => 9, 'criterion' => 'Characterization (Voice)', 'possible_score' => 10],
+                ['no' => 10, 'criterion' => 'Suitability', 'possible_score' => 10],
+                ['no' => 11, 'criterion' => 'Entertainment Value', 'possible_score' => 5],
+                ['no' => 12, 'criterion' => 'Originality / Interpretation', 'possible_score' => 10],
+                ['no' => 13, 'criterion' => 'Overall Production', 'possible_score' => 10],
+            ],
+        ]);
+
+        $parish = Parish::create([
+            'name' => 'St. Luke Drama Group',
+            'code' => 'SLD',
+            'deanery' => 'Livingstone Deanery',
+            'participating_categories' => [$category->id],
+        ]);
+
+        \Livewire\Livewire::actingAs($judge)
+            ->test(\App\Filament\Pages\JudgeWorkstation::class)
+            ->call('selectCategory', $category->id)
+            ->call('openScoreModal', $parish->id)
+            ->set('itemTitle', 'The Road to Emmaus')
+            ->set('composerAuthor', 'Br. John Phiri')
+            ->set('directorProducer', 'Ms. Mary Mwape')
+            ->set('languageUsed', 'English / Lozi')
+            ->set('participantCount', 14)
+            ->set('criteriaScores.1', 9)
+            ->set('criteriaScores.2', 9)
+            ->set('criteriaScores.3', 8)
+            ->set('criteriaScores.4', 4)
+            ->set('criteriaScores.5', 9)
+            ->set('criteriaScores.6', 8)
+            ->set('criteriaScores.7', 9)
+            ->set('criteriaScores.8', 9)
+            ->set('criteriaScores.9', 8)
+            ->set('criteriaScores.10', 9)
+            ->set('criteriaScores.11', 4)
+            ->set('criteriaScores.12', 9)
+            ->set('criteriaScores.13', 9)
+            ->call('saveScore')
+            ->assertHasNoErrors();
+
+        $score = \App\Models\AdjudicationScore::where('category_id', $category->id)
+            ->where('parish_id', $parish->id)
+            ->first();
+
+        $this->assertNotNull($score);
+        $this->assertEquals(104.00, $score->raw_total_score);
+        $this->assertEquals(86.67, $score->normalized_score); // (104 / 120) * 100
+        $this->assertEquals('The Road to Emmaus', $score->item_title);
+        $this->assertEquals('Br. John Phiri', $score->composer_author);
+    }
+
+    public function test_drama_timekeeper_overtime_penalty_applied()
+    {
+        $judge = User::where('email', 'judge1@camfestival.org')->first();
+
+        $category = Category::create([
+            'name' => 'Drama',
+            'slug' => 'drama-time-test',
+            'type' => 'stage_performance',
+            'max_raw_score' => 120,
+            'allocated_minutes' => 45,
+            'judging_criteria' => [
+                ['no' => 1, 'criterion' => 'Movement', 'possible_score' => 10],
+                ['no' => 2, 'criterion' => 'Teamwork', 'possible_score' => 10],
+                ['no' => 3, 'criterion' => 'Individual Acting', 'possible_score' => 10],
+                ['no' => 4, 'criterion' => 'Use of Props', 'possible_score' => 5],
+                ['no' => 5, 'criterion' => 'Understanding of Theme', 'possible_score' => 10],
+                ['no' => 6, 'criterion' => 'Suitability of Set and Costume', 'possible_score' => 10],
+                ['no' => 7, 'criterion' => 'Audibility and Projection', 'possible_score' => 10],
+                ['no' => 8, 'criterion' => 'Articulation', 'possible_score' => 10],
+                ['no' => 9, 'criterion' => 'Characterization (Voice)', 'possible_score' => 10],
+                ['no' => 10, 'criterion' => 'Suitability', 'possible_score' => 10],
+                ['no' => 11, 'criterion' => 'Entertainment Value', 'possible_score' => 5],
+                ['no' => 12, 'criterion' => 'Originality / Interpretation', 'possible_score' => 10],
+                ['no' => 13, 'criterion' => 'Overall Production', 'possible_score' => 10],
+            ],
+        ]);
+
+        $parish = Parish::create([
+            'name' => 'St. Joseph Drama Troupe',
+            'code' => 'SJD',
+            'deanery' => 'Livingstone Deanery',
+            'participating_categories' => [$category->id],
+        ]);
+
+        // Award 100 on rubric, but 1-3 mins overtime (-5 marks) -> final score should be 95
+        \Livewire\Livewire::actingAs($judge)
+            ->test(\App\Filament\Pages\JudgeWorkstation::class)
+            ->call('selectCategory', $category->id)
+            ->call('openScoreModal', $parish->id)
+            ->set('timePenaltyDeduction', 5)
+            ->set('criteriaScores.1', 8)
+            ->set('criteriaScores.2', 8)
+            ->set('criteriaScores.3', 8)
+            ->set('criteriaScores.4', 4)
+            ->set('criteriaScores.5', 8)
+            ->set('criteriaScores.6', 8)
+            ->set('criteriaScores.7', 8)
+            ->set('criteriaScores.8', 8)
+            ->set('criteriaScores.9', 8)
+            ->set('criteriaScores.10', 8)
+            ->set('criteriaScores.11', 4)
+            ->set('criteriaScores.12', 9)
+            ->set('criteriaScores.13', 9)
+            ->call('saveScore')
+            ->assertHasNoErrors();
+
+        $score = \App\Models\AdjudicationScore::where('category_id', $category->id)
+            ->where('parish_id', $parish->id)
+            ->first();
+
+        $this->assertNotNull($score);
+        // Rubric total = 98 - 5 time penalty = 93.00
+        $this->assertEquals(93.00, $score->raw_total_score);
+        $this->assertEquals(5, $score->song_titles_breakdown['time_penalty_deduction']);
+    }
+
     public function test_parish_headcount_auto_calculates_total_from_male_and_female_counts()
     {
         $parish = Parish::create([

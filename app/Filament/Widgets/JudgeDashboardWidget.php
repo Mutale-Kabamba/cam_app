@@ -2,10 +2,10 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\AdjudicationScore;
 use App\Models\Category;
 use App\Models\Parish;
 use App\Models\ScheduleItem;
-use App\Models\AdjudicationScore;
 use Filament\Widgets\Widget;
 
 class JudgeDashboardWidget extends Widget
@@ -19,33 +19,40 @@ class JudgeDashboardWidget extends Widget
     public static function canView(): bool
     {
         $user = auth()->user();
-        return $user && $user->isJudge() && !$user->isAdmin();
+        return $user && method_exists($user, 'isJudge') && $user->isJudge() && !$user->isAdmin();
     }
 
     public function getViewData(): array
     {
         $user = auth()->user();
-        $isJudge = $user && $user->isJudge();
-        $judgeName = $isJudge ? $user->getJudgeName() : 'Judge 1';
+        $isJudge = $user && method_exists($user, 'isJudge') && $user->isJudge();
+        $judgeName = $isJudge && method_exists($user, 'getJudgeName') ? $user->getJudgeName() : 'Judge 1';
 
         $liveSchedule = ScheduleItem::with(['parish', 'category'])
             ->where('status', 'in_progress')
             ->first();
 
+        // Total assessments by this judge
         $scoresCount = AdjudicationScore::where('adjudicator_name', $judgeName)->count();
-        $allParishes = Parish::all();
+        
+        // Eager-load score counts grouped by category to eliminate N+1 queries
+        $scoresByCategory = AdjudicationScore::where('adjudicator_name', $judgeName)
+            ->selectRaw('category_id, count(*) as total')
+            ->groupBy('category_id')
+            ->pluck('total', 'category_id');
+
+        $allParishes = Parish::all(['id', 'participating_categories']);
         $totalParishes = $allParishes->count();
 
-        $hasAnyParticipationSet = $allParishes->contains(function ($p) {
-            return !empty($p->participating_categories) && is_array($p->participating_categories);
-        });
-        $hasAnyScheduleSet = ScheduleItem::whereNotNull('category_id')->whereNotNull('parish_id')->exists();
+        $allScheduleItems = ScheduleItem::whereNotNull('category_id')
+            ->whereNotNull('parish_id')
+            ->get(['category_id', 'parish_id']);
 
-        $categories = Category::orderBy('id')->get()->map(function ($cat) use ($judgeName, $allParishes, $totalParishes, $hasAnyParticipationSet, $hasAnyScheduleSet) {
-            $scheduledParishIds = ScheduleItem::where('category_id', $cat->id)
-                ->whereNotNull('parish_id')
-                ->pluck('parish_id')
-                ->toArray();
+        $hasAnyParticipationSet = $allParishes->contains(fn ($p) => !empty($p->participating_categories) && is_array($p->participating_categories));
+        $hasAnyScheduleSet = $allScheduleItems->isNotEmpty();
+
+        $categories = Category::orderBy('id')->get()->map(function ($cat) use ($judgeName, $allParishes, $totalParishes, $hasAnyParticipationSet, $hasAnyScheduleSet, $allScheduleItems, $scoresByCategory) {
+            $scheduledParishIds = $allScheduleItems->where('category_id', $cat->id)->pluck('parish_id')->unique()->toArray();
 
             if ($hasAnyParticipationSet || $hasAnyScheduleSet) {
                 $targetCount = $allParishes->filter(function (Parish $p) use ($cat, $scheduledParishIds) {
@@ -63,9 +70,7 @@ class JudgeDashboardWidget extends Widget
                 $targetCount = $totalParishes;
             }
 
-            $assessedCount = AdjudicationScore::where('category_id', $cat->id)
-                ->where('adjudicator_name', $judgeName)
-                ->count();
+            $assessedCount = $scoresByCategory->get($cat->id, 0);
 
             $cat->scheduled_count = $targetCount;
             $cat->assessed_count = $assessedCount;
@@ -79,7 +84,7 @@ class JudgeDashboardWidget extends Widget
             'judgeName' => $judgeName,
             'liveSchedule' => $liveSchedule,
             'scoresCount' => $scoresCount,
-            'totalCategories' => $totalCategories,
+            'totalCategories' => $categories->count(),
             'totalParishes' => $totalParishes,
             'categories' => $categories,
         ];
